@@ -5011,7 +5011,7 @@ void wake_up_new_task(struct task_struct *p)
 	post_init_entity_util_avg(p);
 	trace_android_rvh_new_task_stats(p);
 
-	activate_task(rq, p, ENQUEUE_NOCLOCK);
+	activate_task(rq, p, ENQUEUE_NOCLOCK | ENQUEUE_INITIAL);
 	trace_sched_wakeup_new(p);
 	check_preempt_curr(rq, p, wake_flags);
 #ifdef CONFIG_SMP
