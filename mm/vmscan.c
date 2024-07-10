@@ -2265,9 +2265,18 @@ static __always_inline void update_lru_sizes(struct lruvec *lruvec,
  */
 static bool skip_cma(struct folio *folio, struct scan_control *sc)
 {
+#ifdef CONFIG_CONT_PTE_HUGEPAGE
+	/*
+	 * if skip cma in shrink_inactive_list which would not isolate cma
+	 * page. much threads would stuck in too_many_isolated and no chance
+	 * to tigger lmkd or oom killer.
+	 */
+	return false;
+#else
 	return !current_is_kswapd() &&
 			gfp_migratetype(sc->gfp_mask) != MIGRATE_MOVABLE &&
 			get_pageblock_migratetype(&folio->page) == MIGRATE_CMA;
+#endif
 }
 #else
 static bool skip_cma(struct folio *folio, struct scan_control *sc)

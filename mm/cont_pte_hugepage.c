@@ -72,7 +72,7 @@ unsigned long cont_pte_pool_cma_size;
 static unsigned long cont_pte_sup_mem;
 static bool cont_pte_sup_prjname;
 /* true by default, false when cont_pte_hugepage=off in cmdline */
-static bool cont_pte_hugepage_enable = false;
+static bool cont_pte_hugepage_enable = true;
 bool cma_chunk_refill_ready;
 
 #define M2N(SZ) ((SZ) / HPAGE_CONT_PTE_SIZE)
