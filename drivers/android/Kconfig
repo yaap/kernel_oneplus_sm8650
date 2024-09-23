@@ -114,3 +114,5 @@ config ANDROID_VENDOR_OEM_DATA
 	  If even slightly unsure, say Y.
 
 endmenu
+
+source "drivers/android/oplus_binder/Kconfig"
