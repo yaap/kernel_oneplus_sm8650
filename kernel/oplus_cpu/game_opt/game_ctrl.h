@@ -8,7 +8,7 @@
 
 #include <linux/sched.h>
 #include <linux/sched/cputime.h>
-#include <kernel/sched/sched.h>
+#include "../../sched/sched.h"
 
 #define MAX_TID_COUNT 256
 #define MAX_TASK_NR 15

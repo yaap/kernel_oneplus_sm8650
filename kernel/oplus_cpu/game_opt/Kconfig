@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# OPlus Game Opt
+#
+config OPLUS_FEATURE_GAME_OPT
+	tristate "OPlus game optimization features"
+	default n
+	help
+	  OPlus IPA thermal management
