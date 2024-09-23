@@ -82,6 +82,10 @@ endmenu
 source "drivers/soc/oplus/device_info/Kconfig"
 #endif /* OPLUS_FEATURE_TP_BASIC */
 
+#ifdef OPLUS_TRIKEY_MAIN
+source "drivers/soc/oplus/tri_state_key/Kconfig"
+#endif /* CONFIG_OPLUS_TRIKEY_MAIN */
+
 #ifdef OPLUS_FEATURE_DFT
 source "drivers/soc/oplus/dft/Kconfig"
 #endif /* OPLUS_FEATURE_DFT */

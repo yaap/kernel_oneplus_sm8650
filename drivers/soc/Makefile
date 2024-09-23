@@ -42,6 +42,10 @@ obj-$(CONFIG_OPLUS_FEATURE_MM_FEEDBACK)	+= oplus/multimedia/
 obj-$(CONFIG_OPLUS_DEVICE_IFNO)  +=  oplus/device_info/
 #endif /* OPLUS_FEATURE_TP_BASIC */
 
+#ifdef OPLUS_TRIKEY_MAIN
+obj-$(CONFIG_OPLUS_TRIKEY_MAIN)  +=  oplus/tri_state_key/
+#endif /* OPLUS_TRIKEY_MAIN */
+
 #ifdef OPLUS_FEATURE_BOOT
 obj-y += oplus/boot/
 #endif /* OPLUS_FEATURE_BOOT */
