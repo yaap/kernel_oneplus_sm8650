@@ -26,13 +26,7 @@
 #include "hung_task_enhance.h"
 #include "oplus_signal.h"
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
-#include <hooks/hung_task.h>
-#else
 #include <trace/hooks/hung_task.h>
-#endif
-#endif
 
 #if IS_ENABLED(CONFIG_OPLUS_FEATURE_THEIA) && (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 #include <soc/oplus/dfr/theia_send_event.h> /* for theia_send_event etc */
