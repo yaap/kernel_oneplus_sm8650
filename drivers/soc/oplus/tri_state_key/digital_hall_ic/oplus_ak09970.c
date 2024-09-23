@@ -1002,7 +1002,7 @@ fail:
 	return -ENXIO;
 }
 
-static int ak09970_i2c_remove(struct i2c_client *client)
+static void ak09970_i2c_remove(struct i2c_client *client)
 {
 	struct extcon_dev_data	*hall_dev = NULL;
 
@@ -1017,7 +1017,6 @@ static int ak09970_i2c_remove(struct i2c_client *client)
 		kfree(hall_dev);
 		hall_dev = NULL;
 	}
-	return 0;
 }
 
 static int ak09970_i2c_suspend(struct device *dev)
