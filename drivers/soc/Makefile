@@ -51,6 +51,7 @@ obj-$(CONFIG_OPLUS_FEATURE_RECORD_MDMRST)     += oplus/mdmrst/
 #endif /*OPLUS_FEATURE_MODEM_MINIDUMP*/
 
 obj-$(CONFIG_OPLUS_FEATURE_QCOM_WATCHDOG) += oplus/boot/qcom_watchdog/
+obj-y += oplus/dfr/
 obj-y += oplus/dft/
 
 obj-y     += oplus/storage/
