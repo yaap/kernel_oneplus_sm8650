@@ -181,3 +181,7 @@ obj-$(CONFIG_OPLUS_CPU_FREQ_GOV_UAG) += oplus_cpu/uad/
 #ifdef OPLUS_FEATURE_ABNORMAL_FLAG
 obj-$(CONFIG_OPLUS_FEATURE_ABNORMAL_FLAG) += oplus_cpu/oplus_overload/
 #endif /* OPLUS_FEATURE_ABNORMAL_FLAG */
+
+#ifdef HORAE_THERMAL_SHELL
+obj-$(CONFIG_HORAE_THERMAL_SHELL) += oplus_cpu/thermal/
+#endif /* HORAE_THERMAL_SHELL */

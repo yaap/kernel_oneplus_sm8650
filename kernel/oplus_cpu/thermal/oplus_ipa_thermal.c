@@ -17,7 +17,7 @@
 #include <linux/ctype.h>
 #include <linux/version.h>
 
-#include <drivers/thermal/thermal_core.h>
+#include "../../../drivers/thermal/thermal_core.h"
 #include "oplus_ipa_thermal.h"
 #include "horae_shell_temp.h"
 

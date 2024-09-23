@@ -38,6 +38,8 @@ source "kernel/oplus_cpu/cpufreq_health/Kconfig"
 
 source "kernel/oplus_cpu/uad/Kconfig"
 
+source "kernel/oplus_cpu/thermal/Kconfig"
+
 #ifdef OPLUS_FEATURE_OMRG
 source "kernel/oplus_cpu/oplus_omrg/Kconfig"
 #endif /* OPLUS_FEATURE_OMRG */
