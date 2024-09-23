@@ -64,6 +64,10 @@ source "drivers/soc/oplus/boot/htb/Kconfig"
 source "drivers/soc/oplus/boot/oplus_phoenix/Kconfig"
 #endif
 
+#ifdef OPLUS_FEATURE_MIDAS_GKI
+source "drivers/soc/oplus/midas/Kconfig"
+#endif
+
 #ifdef OPLUS_FEATURE_QCOM_WATCHDOG
 source "drivers/soc/oplus/boot/qcom_watchdog/Kconfig"
 #endif

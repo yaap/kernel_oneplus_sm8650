@@ -50,6 +50,10 @@ obj-y += oplus/boot/
 obj-$(CONFIG_OPLUS_FEATURE_RECORD_MDMRST)     += oplus/mdmrst/
 #endif /*OPLUS_FEATURE_MODEM_MINIDUMP*/
 
+#ifdef OPLUS_FEATURE_MIDAS_GKI
+obj-$(CONFIG_OPLUS_FEATURE_MIDAS_GKI)     += oplus/midas/
+#endif
+
 obj-$(CONFIG_OPLUS_FEATURE_QCOM_WATCHDOG) += oplus/boot/qcom_watchdog/
 obj-y += oplus/dfr/
 obj-y += oplus/dft/
