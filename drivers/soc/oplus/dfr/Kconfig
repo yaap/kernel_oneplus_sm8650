@@ -13,10 +13,6 @@ source "drivers/soc/oplus/dfr/qcom/force_shutdown/Kconfig"
 source "drivers/soc/oplus/dfr/qcom/qcom_pmicwd/Kconfig"
 #endif /* OPLUS_FEATURE_QCOM_PMICWD */
 
-#ifdef OPLUS_FEATURE_QCOM_WATCHDOG
-source "drivers/soc/oplus/dfr/qcom/qcom_watchdog/Kconfig"
-#endif /* OPLUS_FEATURE_QCOM_WATCHDOG */
-
 #ifdef OPLUS_FEATURE_DUMP_REASON
 source "drivers/soc/oplus/dfr/qcom/dump_device_info/Kconfig"
 #endif /* OPLUS_FEATURE_DUMP_REASON */
