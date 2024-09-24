@@ -25,6 +25,9 @@ oplus_bsp_tp_notify-y += touchpanel_notify/touchpanel_event_notify.o
 oplus_bsp_tp_common-y += touchpanel_tui_support/touchpanel_tui_support.o
 obj-$(CONFIG_TOUCHPANEL_NOTIFY) += oplus_bsp_tp_notify.o
 
+obj-$(CONFIG_TOUCHPANEL_CUSTOM) += oplus_bsp_tp_custom.o
+oplus_bsp_tp_custom-y := touch_custom/touch.o
+
 obj-$(CONFIG_TOUCHPANEL_SYNAPTICS) += Synaptics/
 obj-$(CONFIG_TOUCHPANEL_FOCAL) += Focal/
 obj-$(CONFIG_TOUCHPANEL_GOODIX) += Goodix/

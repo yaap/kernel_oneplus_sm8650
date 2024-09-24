@@ -30,6 +30,13 @@ config TOUCHPANEL_OPLUS
       Say Y here if you have touchscreen build into driver.
       Say M here if you have touchscreen as module.
 
+config TOUCHPANEL_CUSTOM
+    tristate "custom touchscreen driver"
+    help
+      Say Y here if want to add touch custom driver for the built-in touchscreen.
+      If unsure, say N.
+      To compile this driver as a module, choose M here.
+
 config OPLUS_MTK_DRM_GKI_NOTIFY
        default n
        tristate "tp mtk gki notify"
@@ -122,6 +129,7 @@ endif
 if TOUCHPANEL_HIMAX
 source "drivers/input/touchscreen/oplus_touchscreen_v2/Himax/Kconfig"
 endif
+
 if TOUCHPANEL_SAMSUNG
 source "drivers/input/touchscreen/oplus_touchscreen_v2/Samsung/Kconfig"
 endif
@@ -129,6 +137,7 @@ endif
 if TOUCHPANEL_ILITEK
 source "drivers/input/touchscreen/oplus_touchscreen_v2/ilitek/Kconfig"
 endif
+
 if TOUCHPANEL_ST
 source "drivers/input/touchscreen/oplus_touchscreen_v2/St/Kconfig"
 endif
