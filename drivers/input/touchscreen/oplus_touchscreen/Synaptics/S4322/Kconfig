@@ -5,7 +5,7 @@
 config TOUCHPANEL_SYNAPTICS_S4322
 #	default y
 	bool "TP Synaptics_S3508 IC enable or not for OPLUS"
-	---help---
+	help
 	say Y to enable driver for Touchpanel useing synaptics S3320
 
 #endif

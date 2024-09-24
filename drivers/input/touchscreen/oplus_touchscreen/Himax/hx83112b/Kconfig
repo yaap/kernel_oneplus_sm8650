@@ -5,7 +5,7 @@
 config TOUCHPANEL_HIMAX_HX83112B
 #	default y
 	bool "TP himax hx83112b IC enable or not for OPLUS"
-	---help---
+	help
 	say Y to enable driver for Touchpanel useing himax hx83112b
 
 #endif

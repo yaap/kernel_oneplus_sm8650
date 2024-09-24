@@ -1379,5 +1379,22 @@ config TOUCHSCREEN_ZINITIX
 	  To compile this driver as a module, choose M here: the
 	  module will be called zinitix.
 
-
 endif
+
+#ifdef OPLUS_FW_UPDATE
+source "drivers/input/touchscreen/kernelFwUpdate/Kconfig"
+#endif /* OPLUS_FW_UPDATE */
+
+#ifdef TOUCHPANEL_OPLUS
+source "drivers/input/touchscreen/oplus_touchscreen/Kconfig"
+source "drivers/input/touchscreen/oplus_touchscreen_v2/Kconfig"
+#endif /* TOUCHPANEL_OPLUS */
+
+#ifdef TOUCHSCREEN_SYNA_TCM2
+source "drivers/input/touchscreen/synaptics_hbp/Kconfig"
+#endif /* TOUCHSCREEN_SYNA_TCM2 */
+
+#ifdef TOUCHPANEL_NOTIFY
+source "drivers/input/touchscreen/touchpanel_notify/Kconfig"
+#endif /* TOUCHPANEL_NOTIFY */
+

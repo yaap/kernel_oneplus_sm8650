@@ -5,7 +5,7 @@
 config TOUCHPANEL_FOCAL_FT8006
 #	default y
 	bool "TP focal_ft8006 IC enable or not for OPLUS"
-	---help---
+	help
 	say Y to enable driver for Touchpanel useing focal ft8006
 
 #endif
