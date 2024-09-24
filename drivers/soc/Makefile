@@ -50,10 +50,6 @@ obj-$(CONFIG_OPLUS_TRIKEY_MAIN)  +=  oplus/tri_state_key/
 obj-y += oplus/boot/
 #endif /* OPLUS_FEATURE_BOOT */
 
-#ifdef OPLUS_FEATURE_MODEM_MINIDUMP
-obj-$(CONFIG_OPLUS_FEATURE_RECORD_MDMRST)     += oplus/mdmrst/
-#endif /*OPLUS_FEATURE_MODEM_MINIDUMP*/
-
 #ifdef OPLUS_FEATURE_MIDAS_GKI
 obj-$(CONFIG_OPLUS_FEATURE_MIDAS_GKI)     += oplus/midas/
 #endif
@@ -140,6 +136,14 @@ obj-$(CONFIG_OPLUS_FEATURE_VIRTUAL_NET)     += oplus/network/oplus_vnet/
 
 #ifdef OPLUS_FEATURE_HANS
 obj-$(CONFIG_OPLUS_FEATURE_HANS)     += oplus/network/hans/
+#endif
+
+#ifdef OPLUS_FEATURE_MDMFEATURE
+obj-$(CONFIG_OPLUS_FEATURE_MDMFEATURE)     += oplus/radio/mdmfeature/
+#endif
+
+#ifdef OPLUS_FEATURE_RECORD_MDMRST
+obj-$(CONFIG_OPLUS_FEATURE_RECORD_MDMRST)     += oplus/radio/mdmrst/
 #endif
 
 obj-$(CONFIG_OPLUS_FEATURE_QCOM_WATCHDOG) += oplus/boot/qcom_watchdog/

@@ -80,10 +80,6 @@ source "drivers/soc/oplus/midas/Kconfig"
 source "drivers/soc/oplus/boot/qcom_watchdog/Kconfig"
 #endif
 
-#ifdef OPLUS_FEATURE_MODEM_MINIDUMP
-source "drivers/soc/oplus/mdmrst/Kconfig"
-#endif /*OPLUS_FEATURE_MODEM_MINIDUMP*/
-
 endmenu
 
 #ifdef OPLUS_FEATURE_TP_BASIC
@@ -181,6 +177,14 @@ source "drivers/soc/oplus/network/oplus_vnet/Kconfig"
 #ifdef OPLUS_FEATURE_HANS
 source "drivers/soc/oplus/network/hans/Kconfig"
 #endif /* OPLUS_FEATURE_HANS */
+
+#ifdef OPLUS_FEATURE_MDMFEATURE
+source "drivers/soc/oplus/radio/mdmfeature/Kconfig"
+#endif /* OPLUS_FEATURE_MDMFEATURE */
+
+#ifdef OPLUS_FEATURE_RECORD_MDMRST
+source "drivers/soc/oplus/radio/mdmrst/Kconfig"
+#endif /* OPLUS_FEATURE_RECORD_MDMRST */
 
 #ifdef OPLUS_SUBSYS_SLEEP_MONITOR
 source "drivers/soc/oplus/power/subsys_sleep_monitor/Kconfig"
