@@ -1386,7 +1386,6 @@ source "drivers/input/touchscreen/kernelFwUpdate/Kconfig"
 #endif /* OPLUS_FW_UPDATE */
 
 #ifdef TOUCHPANEL_OPLUS
-source "drivers/input/touchscreen/oplus_touchscreen/Kconfig"
 source "drivers/input/touchscreen/oplus_touchscreen_v2/Kconfig"
 #endif /* TOUCHPANEL_OPLUS */
 
