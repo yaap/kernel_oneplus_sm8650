@@ -1,0 +1,1 @@
+obj-$(CONFIG_OPLUS_FEATURE_RF_CABLE_MONITOR) += oplus_rf_cable_monitor.o

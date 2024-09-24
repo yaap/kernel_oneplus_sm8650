@@ -118,6 +118,66 @@ source "drivers/soc/oplus/wifi/oplus_wificapcenter/Kconfig"
 source "drivers/soc/oplus/wifi/oplus_wifi_wsa/Kconfig"
 #endif /* OPLUS_FEATURE_WIFI_SMARTANTENNA */
 
+#ifdef OPLUS_FEATURE_DATA_MODULE
+source "drivers/soc/oplus/network/data_module/Kconfig"
+#endif /* OPLUS_FEATURE_DATA_MODULE */
+
+#ifdef OPLUS_FEATURE_LINKPOWER_MODULE
+source "drivers/soc/oplus/network/linkpower_module/Kconfig"
+#endif /* OPLUS_FEATURE_LINKPOWER_MODULE */
+
+#ifdef OPLUS_FEATURE_APP_MONITOR
+source "drivers/soc/oplus/network/oplus_apps_monitor/Kconfig"
+#endif /* OPLUS_FEATURE_APP_MONITOR */
+
+#ifdef OPLUS_FEATURE_DNS_HOOK
+source "drivers/soc/oplus/network/oplus_dns_hook/Kconfig"
+#endif /* OPLUS_FEATURE_DNS_HOOK */
+
+#ifdef OPLUS_FEATURE_GAME_FIRST
+source "drivers/soc/oplus/network/oplus_game_first/Kconfig"
+#endif /* OPLUS_FEATURE_GAME_FIRST */
+
+#ifdef OPLUS_FEATURE_ESIM
+source "drivers/soc/oplus/network/oplus_network_esim/Kconfig"
+#endif /* OPLUS_FEATURE_ESIM */
+
+#ifdef OPLUS_FEATURE_OEM_QMI
+source "drivers/soc/oplus/network/oplus_network_oem_qmi/Kconfig"
+#endif /* OPLUS_FEATURE_OEM_QMI */
+
+#ifdef OPLUS_FEATURE_SIM_DETECT
+source "drivers/soc/oplus/network/oplus_network_sim_detect/Kconfig"
+#endif /* OPLUS_FEATURE_SIM_DETECT */
+
+#ifdef OPLUS_FEATURE_NETWORK_KERNEL
+source "drivers/soc/oplus/network/oplus_network_tuning/Kconfig"
+#endif /* OPLUS_FEATURE_NETWORK_KERNEL */
+
+#ifdef OPLUS_FEATURE_QR_SCAN
+source "drivers/soc/oplus/network/oplus_qr_scan/Kconfig"
+#endif /* OPLUS_FEATURE_QR_SCAN */
+
+#ifdef OPLUS_FEATURE_RF_CABLE_MONITOR
+source "drivers/soc/oplus/network/oplus_rf_cable_monitor/Kconfig"
+#endif /* OPLUS_FEATURE_RF_CABLE_MONITOR */
+
+#ifdef OPLUS_FEATURE_DATA_EVAL
+source "drivers/soc/oplus/network/oplus_score/Kconfig"
+#endif /* OPLUS_FEATURE_DATA_EVAL */
+
+#ifdef OPLUS_FEATURE_ESTABLISH_REPORT
+source "drivers/soc/oplus/network/oplus_socket_stats_report/Kconfig"
+#endif /* OPLUS_FEATURE_ESTABLISH_REPORT */
+
+#ifdef OPLUS_FEATURE_STATS_CALC
+source "drivers/soc/oplus/network/oplus_stats_calc/Kconfig"
+#endif /* OPLUS_FEATURE_STATS_CALC */
+
+#ifdef OPLUS_FEATURE_VIRTUAL_NET
+source "drivers/soc/oplus/network/oplus_vnet/Kconfig"
+#endif /* OPLUS_FEATURE_VIRTUAL_NET */
+
 #ifdef OPLUS_SUBSYS_SLEEP_MONITOR
 source "drivers/soc/oplus/power/subsys_sleep_monitor/Kconfig"
 #endif /* OPLUS_SUBSYS_SLEEP_MONITOR */

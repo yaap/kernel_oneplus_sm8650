@@ -187,7 +187,7 @@ obj-$(CONFIG_HORAE_THERMAL_SHELL) += oplus_cpu/thermal/
 #endif /* HORAE_THERMAL_SHELL */
 
 #ifdef OPLUS_FEATURE_GAME_OPT
-obj-$(CONFIG_FEATURE_GAME_OPT) += oplus_cpu/game_opt/
+obj-$(CONFIG_OPLUS_FEATURE_GAME_OPT) += oplus_cpu/game_opt/
 #endif /* OPLUS_FEATURE_GAME_OPT */
 
 #ifdef OPLUS_LOCKING_STRATEGY
