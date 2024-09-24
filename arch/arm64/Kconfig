@@ -2314,6 +2314,10 @@ source "drivers/cpufreq/Kconfig"
 
 endmenu # "CPU Power Management"
 
+#ifdef OPLUS_KERNEL_SECURE_FEATURE
+source "arch/arm64/kernel/secureguard/Kconfig"
+#endif /* OPLUS_KERNEL_SECURE_FEATURE */
+
 source "drivers/acpi/Kconfig"
 
 source "arch/arm64/kvm/Kconfig"

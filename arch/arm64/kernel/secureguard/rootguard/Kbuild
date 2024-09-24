@@ -26,8 +26,9 @@ ifeq ($(OPLUS_OUT_OF_TREE_KO),y)
 ccflags-y += -DCONFIG_OPLUS_KERNEL_SECURE_GUARD_MODULE=1
 endif
 
-obj-$(CONFIG_OPLUS_KERNEL_SECURE_GUARD)    +=  oplus_secure_harden.o
-obj-$(CONFIG_OPLUS_KERNEL_SECURE_GUARD)	   +=  oplus_security_keventupload.o
-oplus_security_keventupload-objs := oplus_kevent_upload.o oplus_secure_debug.o
-obj-$(CONFIG_OPLUS_KERNEL_SECURE_GUARD)	 +=  oplus_security_guard.o
-oplus_security_guard-objs := oplus_security_init.o oplus_hook.o oplus_root_hook.o oplus_guard_general.o oplus_exec_hook.o oplus_harden_hook.o
+obj-$(CONFIG_OPLUS_KERNEL_SECURE_GUARD)	 +=  oplus_secure_guard.o
+oplus_secure_guard-y := oplus_exec_hook.o oplus_harden_hook.o oplus_secure_harden.o oplus_guard_general.o oplus_kevent_upload.o oplus_secureguard.o oplus_secure_hook.o
+
+ifeq ($(CONFIG_OPLUS_FEATURE_SECURE_ROOTGUARD),y)
+oplus_secure_guard-y += oplus_root_hook.o
+endif

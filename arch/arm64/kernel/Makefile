@@ -97,3 +97,8 @@ endif
 
 # for cleaning
 subdir- += vdso vdso32
+
+#ifdef OPLUS_KERNEL_SECURE_FEATURE
+obj-y  += secureguard/
+#endif
+
