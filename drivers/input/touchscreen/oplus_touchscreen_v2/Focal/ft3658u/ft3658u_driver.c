@@ -2697,7 +2697,7 @@ ts_malloc_failed:
 	return ret;
 }
 
-static int fts3658u_tp_remove(struct i2c_client * client)
+static void fts3658u_tp_remove(struct i2c_client * client)
 {
 	struct touchpanel_data *ts = i2c_get_clientdata(client);
 	struct chip_data_ft3658u *ts_data = (struct chip_data_ft3658u *)ts->chip_data;
@@ -2709,7 +2709,6 @@ static int fts3658u_tp_remove(struct i2c_client * client)
 	ts_data = NULL;
 
 	kfree(ts);
-	return 0;
 }
 
 static int fts3658u_i2c_suspend(struct device * dev)
