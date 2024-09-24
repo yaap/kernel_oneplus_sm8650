@@ -10,9 +10,9 @@ TCM_CORE=tcm/
 ccflags-y += -I$(srctree)/drivers/input/touchscreen/synaptics_hbp/
 ccflags-y += -I$(srctree)/drivers/input/touchscreen/synaptics_hbp/tcm/
 
-synaptics_tcm2-y := syna_tcm2.o
+oplus_bsp_synaptics_tcm2-y := syna_tcm2.o
 
-synaptics_tcm2-y += \
+oplus_bsp_synaptics_tcm2-y += \
 					$(TCM_CORE)synaptics_touchcom_core_v1.o \
 					$(TCM_CORE)synaptics_touchcom_core_v2.o \
  					$(TCM_CORE)synaptics_touchcom_func_base.o \
@@ -20,14 +20,14 @@ synaptics_tcm2-y += \
 					$(TCM_CORE)synaptics_touchcom_func_reflash.o \
 					$(TCM_CORE)synaptics_touchcom_func_romboot.o
 
-synaptics_tcm2-y += syna_tcm2_platform_spi.o
-synaptics_tcm2-y += syna_tcm2_sysfs.o
-synaptics_tcm2-y += syna_tcm2_testing.o
-synaptics_tcm2-y += synaptics_common.o
-synaptics_tcm2-y += touchpanel_proc.o
-synaptics_tcm2-y += touch_comon_api/touch_comon_api.o
-synaptics_tcm2-y += touchpanel_autotest/touchpanel_autotest.o
-synaptics_tcm2-y += touchpanel_healthinfo/touchpanel_healthinfo.o
-synaptics_tcm2-y += touchpanel_healthinfo/touchpanel_exception.o
+oplus_bsp_synaptics_tcm2-y += syna_tcm2_platform_spi.o
+oplus_bsp_synaptics_tcm2-y += syna_tcm2_sysfs.o
+oplus_bsp_synaptics_tcm2-y += syna_tcm2_testing.o
+oplus_bsp_synaptics_tcm2-y += synaptics_common.o
+oplus_bsp_synaptics_tcm2-y += touchpanel_proc.o
+oplus_bsp_synaptics_tcm2-y += touch_comon_api/touch_comon_api.o
+oplus_bsp_synaptics_tcm2-y += touchpanel_autotest/touchpanel_autotest.o
+oplus_bsp_synaptics_tcm2-y += touchpanel_healthinfo/touchpanel_healthinfo.o
+oplus_bsp_synaptics_tcm2-y += touchpanel_healthinfo/touchpanel_exception.o
 
-obj-$(CONFIG_TOUCHSCREEN_SYNA_TCM2) += synaptics_tcm2.o
+obj-$(CONFIG_TOUCHSCREEN_SYNA_TCM2) += oplus_bsp_synaptics_tcm2.o
