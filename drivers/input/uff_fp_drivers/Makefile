@@ -25,10 +25,10 @@ ifeq ($(CONFIG_OPLUS_FINGERPRINT_GKI_ENABLE),y)
 ccflags-y += -I$(srctree)/../../vendor/oplus/kernel/touchpanel/oplus_touchscreen_v2/touchpanel_notify
 endif
 
-obj-$(CONFIG_UFF_FINGERPRINT) += uff_fp_driver.o
-uff_fp_driver-y := fp_driver.o fp_platform.o fingerprint_event.o fp_health.o fp_netlink.o
+obj-$(CONFIG_UFF_FINGERPRINT) += oplus_bsp_uff_fp_driver.o
+oplus_bsp_uff_fp_driver-y := fp_driver.o fp_platform.o fingerprint_event.o fp_health.o fp_netlink.o
 ifeq ($(UFF_FP_DRIVER_INJECT_ENABLE),yes)
-uff_fp_driver-y += fp_fault_inject.o
+oplus_bsp_uff_fp_driver-y += fp_fault_inject.o
 endif
 endif
 
@@ -62,10 +62,10 @@ ifeq ($(CONFIG_OPLUS_FINGERPRINT_GKI_ENABLE),y)
 ccflags-y += -I$(srctree)/../vendor/oplus/kernel/touchpanel/oplus_touchscreen_v2/touchpanel_notify
 endif
 
-obj-$(CONFIG_UFF_FINGERPRINT) += uff_fp_driver.o
-uff_fp_driver-y := fp_driver.o fp_platform.o fingerprint_event.o fp_health.o fp_netlink.o
+obj-$(CONFIG_UFF_FINGERPRINT) += oplus_bsp_uff_fp_driver.o
+oplus_bsp_uff_fp_driver-y := fp_driver.o fp_platform.o fingerprint_event.o fp_health.o fp_netlink.o
 ifeq ($(UFF_FP_DRIVER_INJECT_ENABLE),yes)
-uff_fp_driver-y += fp_fault_inject.o
+oplus_bsp_uff_fp_driver-y += fp_fault_inject.o
 endif
 endif
 
