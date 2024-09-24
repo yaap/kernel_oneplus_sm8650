@@ -119,4 +119,3 @@ obj-$(CONFIG_TOUCHSCREEN_ZINITIX)	+= zinitix.o
 obj-$(CONFIG_OPLUS_FW_UPDATE) += kernelFwUpdate/
 obj-$(CONFIG_TOUCHPANEL_OPLUS) += oplus_touchscreen_v2/
 obj-$(CONFIG_TOUCHSCREEN_SYNA_TCM2) += synaptics_hbp/
-obj-$(CONFIG_TOUCHPANEL_NOTIFY) += touchpanel_notify/

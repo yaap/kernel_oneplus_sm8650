@@ -1392,8 +1392,3 @@ source "drivers/input/touchscreen/oplus_touchscreen_v2/Kconfig"
 #ifdef TOUCHSCREEN_SYNA_TCM2
 source "drivers/input/touchscreen/synaptics_hbp/Kconfig"
 #endif /* TOUCHSCREEN_SYNA_TCM2 */
-
-#ifdef TOUCHPANEL_NOTIFY
-source "drivers/input/touchscreen/touchpanel_notify/Kconfig"
-#endif /* TOUCHPANEL_NOTIFY */
-
