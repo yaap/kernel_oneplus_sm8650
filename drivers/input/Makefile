@@ -33,5 +33,9 @@ obj-$(CONFIG_RMI4_CORE)		+= rmi4/
 
 #ifdef OPLUS_FEATURE_UFF_FINGERPRINT
 obj-$(CONFIG_UFF_FINGERPRINT)  += uff_fp_drivers/
-#endif /*OPLUS_FEATURE_UFF_FINGERPRINT*/
+#endif /* OPLUS_FEATURE_UFF_FINGERPRINT */
+
+#ifdef OPLUS_SECURE_COMMON
+obj-$(CONFIG_OPLUS_SECURE_COMMON)  += oplus_secure_drivers/
+#endif /* OPLUS_SECURE_COMMON */
 
