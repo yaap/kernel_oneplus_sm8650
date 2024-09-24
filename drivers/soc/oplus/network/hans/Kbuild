@@ -1,7 +1,7 @@
 #QCOM in tree
 ifeq ($(CONFIG_OPLUS_FEATURE_HANS), m)
-obj-$(CONFIG_OPLUS_FEATURE_HANS)          += oplus_hans.o
-oplus_hans-objs                           += hans_help.o hans.o hans_netfilter.o
+obj-$(CONFIG_OPLUS_FEATURE_HANS)          += oplus_sys_hans.o
+oplus_sys_hans-objs                           += hans_help.o hans.o hans_netfilter.o
 endif
 #MTK in tree
 ifeq ($(CONFIG_OPLUS_FEATURE_HANS_GKI), m)

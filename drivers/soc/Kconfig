@@ -178,6 +178,10 @@ source "drivers/soc/oplus/network/oplus_stats_calc/Kconfig"
 source "drivers/soc/oplus/network/oplus_vnet/Kconfig"
 #endif /* OPLUS_FEATURE_VIRTUAL_NET */
 
+#ifdef OPLUS_FEATURE_HANS
+source "drivers/soc/oplus/network/hans/Kconfig"
+#endif /* OPLUS_FEATURE_HANS */
+
 #ifdef OPLUS_SUBSYS_SLEEP_MONITOR
 source "drivers/soc/oplus/power/subsys_sleep_monitor/Kconfig"
 #endif /* OPLUS_SUBSYS_SLEEP_MONITOR */

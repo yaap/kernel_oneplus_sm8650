@@ -138,6 +138,10 @@ obj-$(CONFIG_OPLUS_FEATURE_STATS_CALC)     += oplus/network/oplus_stats_calc/
 obj-$(CONFIG_OPLUS_FEATURE_VIRTUAL_NET)     += oplus/network/oplus_vnet/
 #endif
 
+#ifdef OPLUS_FEATURE_HANS
+obj-$(CONFIG_OPLUS_FEATURE_HANS)     += oplus/network/hans/
+#endif
+
 obj-$(CONFIG_OPLUS_FEATURE_QCOM_WATCHDOG) += oplus/boot/qcom_watchdog/
 obj-y += oplus/dfr/
 obj-y += oplus/dft/

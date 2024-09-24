@@ -1,4 +1,3 @@
-#ifdef OPLUS_FEATURE_HANS_FREEZE
 config OPLUS_FEATURE_HANS
 	tristate "HANS kernel and HANS native communication channel"
 	default n
@@ -10,5 +9,3 @@ config OPLUS_FEATURE_HANS_GKI
 	default n
 	help
 	  Key events (signal/network package/binder) report to HAS native.
-#endif /*OPLUS_FEATURE_HANS_FREEZE*/
-
