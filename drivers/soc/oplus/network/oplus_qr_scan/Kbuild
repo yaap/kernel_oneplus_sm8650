@@ -1,1 +1,2 @@
-obj-$(CONFIG_OPLUS_FEATURE_QR_SCAN) += oplus_qr_scan.o
+obj-$(CONFIG_OPLUS_FEATURE_QR_SCAN) += oplus_network_qr_scan.o
+oplus_network_qr_scan-y := oplus_qr_scan.o

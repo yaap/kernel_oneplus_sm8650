@@ -1,5 +1,5 @@
-obj-$(CONFIG_OPLUS_FEATURE_KERNEL_NETWORK_PARA) += oplus_networks_tuning.o
-oplus_networks_tuning-objs := oplus_network_tuning.o \
+obj-$(CONFIG_OPLUS_FEATURE_NETWORK_KERNEL) += oplus_network_tuning.o
+oplus_network_tuning-objs := network_tuning.o \
 			oplus_tcp_congest_control/oplus_tcp_congest_control.o \
 			oplus_tcp_congest_control/oplus_bbr.o \
 			oplus_tcp_congest_control/oplus_win_minmax.o \

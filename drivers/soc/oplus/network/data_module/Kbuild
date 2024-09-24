@@ -1,8 +1,8 @@
-obj-$(CONFIG_OPLUS_FEATURE_DATA_MODULE) += oplus_data_module.o
+obj-$(CONFIG_OPLUS_FEATURE_DATA_MODULE) += oplus_network_data_module.o
 
 ccflags-y += -Wall -Werror
 
-oplus_data_module-objs := data_main.o \
+oplus_network_data_module-objs := data_main.o \
 			comm_netlink/comm_netlink.o \
 			comm_netlink/protobuf-c.o \
 			proto-src/netlink_msg.pb-c.o \

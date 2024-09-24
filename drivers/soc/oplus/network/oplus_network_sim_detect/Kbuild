@@ -1,1 +1,2 @@
-obj-$(CONFIG_OPLUS_FEATURE_SIM_DETECT) += sim_detect.o
+obj-$(CONFIG_OPLUS_FEATURE_SIM_DETECT) += oplus_network_sim_detect.o
+oplus_network_sim_detect-y := sim_detect.o

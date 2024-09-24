@@ -1,7 +1,7 @@
 #
 # Add for kernel data info send to user space.
 #
-KBUILD_OPTIONS += CONFIG_OPLUS_FEATURE_KERNEL_NETWORK_PARA=m
+KBUILD_OPTIONS += CONFIG_OPLUS_FEATURE_NETWORK_KERNEL=m
 
 KERNEL_SRC ?= /lib/modules/$(shell uname -r)/build
 M ?= $(shell pwd)

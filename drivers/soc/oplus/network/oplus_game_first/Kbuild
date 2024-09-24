@@ -1,1 +1,2 @@
-obj-$(CONFIG_OPLUS_FEATURE_GAME_FIRST) += oplus_game_first.o
+obj-$(CONFIG_OPLUS_FEATURE_GAME_FIRST) += oplus_network_game_first.o
+oplus_network_game_first-y := oplus_game_first.o
