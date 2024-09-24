@@ -44,6 +44,10 @@ source "kernel/oplus_cpu/thermal/Kconfig"
 source "kernel/oplus_cpu/game_opt/Kconfig"
 #endif /* OPLUS_FEATURE_GAME_OPT */
 
+#ifdef OPLUS_LOCKING_STRATEGY
+source "kernel/locking/oplus_locking/Kconfig"
+#endif /* OPLUS_LOCKING_STRATEGY */
+
 #ifdef OPLUS_FEATURE_OMRG
 source "kernel/oplus_cpu/oplus_omrg/Kconfig"
 #endif /* OPLUS_FEATURE_OMRG */
