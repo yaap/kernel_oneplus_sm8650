@@ -141,8 +141,8 @@ obj-$(CONFIG_OPLUS_FEATURE_VIRTUAL_NET)     += oplus/network/oplus_vnet/
 obj-$(CONFIG_OPLUS_FEATURE_QCOM_WATCHDOG) += oplus/boot/qcom_watchdog/
 obj-y += oplus/dfr/
 obj-y += oplus/dft/
-
 obj-y     += oplus/storage/
+obj-y     += oplus/sensors/
 
 #ifdef OPLUS_SUBSYS_SLEEP_MONITOR
 obj-$(CONFIG_OPLUS_SUBSYS_SLEEP_MONITOR)     += oplus/power/subsys_sleep_monitor/
