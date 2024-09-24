@@ -58,6 +58,22 @@ obj-$(CONFIG_OPLUS_FEATURE_RECORD_MDMRST)     += oplus/mdmrst/
 obj-$(CONFIG_OPLUS_FEATURE_MIDAS_GKI)     += oplus/midas/
 #endif
 
+#ifdef OPLUS_FEATURE_WIFI_ROUTERBOOST
+obj-$(CONFIG_OPLUS_FEATURE_WIFI_ROUTERBOOST)     += oplus/wifi/oplus_connectivity_routerboost/
+#endif
+
+#ifdef OPLUS_FEATURE_WIFI_SLA
+obj-$(CONFIG_OPLUS_FEATURE_WIFI_SLA)     += oplus/wifi/oplus_connectivity_sla/
+#endif
+
+#ifdef OPLUS_FEATURE_WIFI_CAPCENTER
+obj-$(CONFIG_OPLUS_FEATURE_WIFI_CAPCENTER)     += oplus/wifi/oplus_wificapcenter/
+#endif
+
+#ifdef OPLUS_FEATURE_WIFI_SMARTANTENNA
+obj-$(CONFIG_OPLUS_FEATURE_WIFI_SMARTANTENNA)     += oplus/wifi/oplus_wifi_wsa/
+#endif
+
 obj-$(CONFIG_OPLUS_FEATURE_QCOM_WATCHDOG) += oplus/boot/qcom_watchdog/
 obj-y += oplus/dfr/
 obj-y += oplus/dft/

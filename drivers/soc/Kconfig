@@ -102,6 +102,22 @@ source "drivers/soc/oplus/dfr/Kconfig"
 
 source "drivers/soc/oplus/storage/Kconfig"
 
+#ifdef OPLUS_FEATURE_WIFI_ROUTERBOOST
+source "drivers/soc/oplus/wifi/oplus_connectivity_routerboost/Kconfig"
+#endif /* OPLUS_FEATURE_WIFI_ROUTERBOOST */
+
+#ifdef OPLUS_FEATURE_WIFI_SLA
+source "drivers/soc/oplus/wifi/oplus_connectivity_sla/Kconfig"
+#endif /* OPLUS_FEATURE_WIFI_SLA */
+
+#ifdef OPLUS_FEATURE_WIFI_CAPCENTER
+source "drivers/soc/oplus/wifi/oplus_wificapcenter/Kconfig"
+#endif /* OPLUS_FEATURE_WIFI_CAPCENTER */
+
+#ifdef OPLUS_FEATURE_WIFI_SMARTANTENNA
+source "drivers/soc/oplus/wifi/oplus_wifi_wsa/Kconfig"
+#endif /* OPLUS_FEATURE_WIFI_SMARTANTENNA */
+
 #ifdef OPLUS_SUBSYS_SLEEP_MONITOR
 source "drivers/soc/oplus/power/subsys_sleep_monitor/Kconfig"
 #endif /* OPLUS_SUBSYS_SLEEP_MONITOR */
