@@ -17,7 +17,7 @@
 #include <trace/events/task.h>
 #include <../fs/proc/internal.h>
 #include <linux/sched/cputime.h>
-#include <kernel/sched/sched.h>
+#include "../../../sched/sched.h"
 #include "task_load.h"
 #include <../kernel/oplus_cpu/sched/sched_assist/sa_common.h>
 
