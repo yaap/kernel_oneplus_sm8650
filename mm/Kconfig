@@ -1244,6 +1244,7 @@ source "mm/damon/Kconfig"
 source "mm/mm_osvelte/Kconfig"
 source "mm/memleak_detect/Kconfig"
 source "mm/proactive_compact/Kconfig"
+source "mm/sigkill_diagnosis/Kconfig"
 
 #ifdef OPLUS_FEATURE_MM
 config OPLUS_FEATURE_UXMEM_OPT

@@ -1,0 +1,5 @@
+config OPLUS_FEATURE_SIGKILL_DIAGNOSIS
+        tristate "sigkill diagnosis"
+        help
+          OPlus sigkill diagnosis
+
