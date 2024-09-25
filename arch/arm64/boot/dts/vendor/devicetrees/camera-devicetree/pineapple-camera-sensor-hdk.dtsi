@@ -1,4 +1,4 @@
-#include <dt-bindings/msm-camera.h>
+#include "bindings/msm-camera.h"
 &soc {
 	led_flash_triple_rear_wide: qcom,camera-flash1 {
 		cell-index = <1>;

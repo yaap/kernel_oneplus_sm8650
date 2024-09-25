@@ -1,4 +1,4 @@
-#include <dt-bindings/msm-camera.h>
+#include "bindings/msm-camera.h"
 
 &soc {
 	qcom,cam-res-mgr {
