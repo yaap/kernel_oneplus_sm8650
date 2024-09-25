@@ -1243,6 +1243,7 @@ config LOCK_MM_AND_FIND_VMA
 source "mm/damon/Kconfig"
 source "mm/mm_osvelte/Kconfig"
 source "mm/memleak_detect/Kconfig"
+source "mm/proactive_compact/Kconfig"
 
 #ifdef OPLUS_FEATURE_MM
 config OPLUS_FEATURE_UXMEM_OPT

@@ -142,6 +142,7 @@ obj-$(CONFIG_GENERIC_IOREMAP) += ioremap.o
 obj-$(CONFIG_SHRINKER_DEBUG) += shrinker_debug.o
 obj-$(CONFIG_OPLUS_FEATURE_MM_OSVELTE) += mm_osvelte/
 obj-$(CONFIG_MEMLEAK_DETECT_SIMPLE) += memleak_detect/
+obj-$(CONFIG_OPLUS_PROACTIVE_COMPACT) += proactive_compact/
 obj-$(CONFIG_CONT_PTE_HUGEPAGE) += cont_pte_hugepage.o
 
 #ifdef OPLUS_KERNEL_MM

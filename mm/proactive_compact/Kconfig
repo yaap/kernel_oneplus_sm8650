@@ -1,0 +1,5 @@
+config OPLUS_PROACTIVE_COMPACT
+	tristate "proactive compact"
+	default n
+	help
+	  oplus proactive compact
