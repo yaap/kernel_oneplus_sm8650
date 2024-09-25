@@ -14,7 +14,7 @@
 #include <linux/proc_fs.h>
 #include <trace/hooks/mm.h>
 
-#include <mm/slab.h>
+#include "../slab.h"
 #include "memleak_debug_stackdepot.h"
 
 int kmalloc_debug = 1;

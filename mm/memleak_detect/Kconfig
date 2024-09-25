@@ -1,0 +1,4 @@
+config MEMLEAK_DETECT_SIMPLE
+        tristate "memleak detect simple"
+        help
+          Simple OPlus memleak detector
