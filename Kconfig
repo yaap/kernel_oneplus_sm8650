@@ -17,6 +17,12 @@ config OPLUS_SYSTEM_KERNEL_QCOM
   help
 	define this config to Distinguish between qcom and mtk platform
 
+config OPLUS_ARCH_EXTENDS
+  bool "config oplus system feature"
+  default y
+  help
+	define this config for oplus devices
+
 source "scripts/Kconfig.include"
 
 source "init/Kconfig"
