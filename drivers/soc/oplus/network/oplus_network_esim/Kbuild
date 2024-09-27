@@ -1,0 +1,1 @@
+obj-$(CONFIG_OPLUS_FEATURE_ESIM) += oplus_network_esim.o

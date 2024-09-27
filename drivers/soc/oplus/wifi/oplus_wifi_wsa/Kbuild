@@ -1,0 +1,4 @@
+obj-$(CONFIG_OPLUS_FEATURE_WIFI_SMARTANTENNA) += oplus_wifi_wsa.o
+oplus_wifi_wsa-y := oplus_wifismartantenna.o
+
+ccflags-$(OPLUS_FEATURE_WIFI_SMARTANTENNA) += -DOPLUS_FEATURE_WIFI_SMARTANTENNA

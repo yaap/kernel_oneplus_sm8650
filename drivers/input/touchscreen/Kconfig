@@ -1380,3 +1380,15 @@ config TOUCHSCREEN_ZINITIX
 	  module will be called zinitix.
 
 endif
+
+#ifdef OPLUS_FW_UPDATE
+source "drivers/input/touchscreen/kernelFwUpdate/Kconfig"
+#endif /* OPLUS_FW_UPDATE */
+
+#ifdef TOUCHPANEL_OPLUS
+source "drivers/input/touchscreen/oplus_touchscreen_v2/Kconfig"
+#endif /* TOUCHPANEL_OPLUS */
+
+#ifdef TOUCHSCREEN_SYNA_TCM2
+source "drivers/input/touchscreen/synaptics_hbp/Kconfig"
+#endif /* TOUCHSCREEN_SYNA_TCM2 */

@@ -1108,15 +1108,6 @@ static struct clk_rcg2 gcc_sdcc2_apps_clk_src = {
 		.flags = CLK_OPS_PARENT_ENABLE,
 		.ops = &clk_rcg2_floor_ops,
 	},
-	.clkr.vdd_data = {
-		.vdd_class = &vdd_cx,
-		.num_rate_max = VDD_NUM,
-		.rate_max = (unsigned long[VDD_NUM]) {
-			[VDD_MIN] = 19200000,
-			[VDD_LOWER] = 50000000,
-			[VDD_LOW] = 100000000,
-			[VDD_LOW_L1] = 202000000},
-	},
 };
 
 static const struct freq_tbl ftbl_gcc_sdcc4_apps_clk_src[] = {

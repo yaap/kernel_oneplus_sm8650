@@ -1,0 +1,2 @@
+obj-$(CONFIG_OPLUS_FEATURE_DNS_HOOK) += oplus_network_dns_hook.o
+oplus_network_dns_hook-y := oplus_dns_hook.o

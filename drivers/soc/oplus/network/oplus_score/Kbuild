@@ -1,0 +1,2 @@
+obj-$(CONFIG_OPLUS_FEATURE_DATA_EVAL) += oplus_network_score.o
+oplus_network_score-y := oplus_score.o

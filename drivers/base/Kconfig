@@ -229,5 +229,4 @@ config GENERIC_ARCH_NUMA
 	help
 	  Enable support for generic NUMA implementation. Currently, RISC-V
 	  and ARM64 use it.
-
 endmenu

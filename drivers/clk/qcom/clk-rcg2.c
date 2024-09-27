@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2013, 2016-2018, 2020-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/kernel.h>
@@ -289,11 +289,17 @@ static void disable_unprepare_rcg_srcs(struct clk *curr, struct clk *new)
 static unsigned long
 calc_rate(unsigned long rate, u32 m, u32 n, u32 mode, u32 hid_div)
 {
-	if (hid_div)
-		rate = mult_frac(rate, 2, hid_div + 1);
+	if (hid_div) {
+		rate *= 2;
+		rate /= hid_div + 1;
+	}
 
-	if (mode)
-		rate = mult_frac(rate, m, n);
+	if (mode) {
+		u64 tmp = rate;
+		tmp *= m;
+		do_div(tmp, n);
+		rate = tmp;
+	}
 
 	return rate;
 }
@@ -2016,18 +2022,26 @@ static unsigned long
 clk_rcg2_crmc_recalc_rate(struct clk_hw *hw, unsigned long parent_rate)
 {
 	struct clk_rcg2 *rcg = to_clk_rcg2(hw);
+	struct clk_crm *crm = rcg->clkr.crm;
+	u32 curr_perf_ol;
 
-	/*
-	 * CRM-controlled clocks have multiple SW and HW voters. We need to
-	 * return the Linux SW vote instead of the current HW rate. The HW rate
-	 * is a result of aggregating across all clients. If we return the
-	 * aggregated rate, then subsequent clk_set_rate() calls can
-	 * short-circuit before calling our set_rate() callback, even if we
-	 * haven't sent a vote for that new rate on behalf of our SW client
-	 * yet. Failing to do so can result in the clock frequency dropping
-	 * below the rate expected by the framework and consumer.
-	 */
-	return rcg->current_freq;
+	if (!clk_hw_is_prepared(hw))
+		return rcg->current_freq;
+
+	if (crm->initialized) {
+		regmap_read(crm->regmap_crmc,
+			    CLK_RCG_CRMC_CURR_PERF_OL(rcg->clkr.crm_vcd), &curr_perf_ol);
+
+		if (curr_perf_ol)
+			curr_perf_ol--;
+
+		if (rcg->freq_tbl && curr_perf_ol < MAX_PERF_LEVEL_PER_VCD)
+			return rcg->freq_tbl[curr_perf_ol].freq;
+	} else {
+		return clk_rcg2_recalc_rate(hw, parent_rate);
+	}
+
+	return -EINVAL;
 }
 
 const struct clk_ops clk_rcg2_crmc_ops = {
@@ -2086,7 +2100,7 @@ int clk_rcg2_crmb_prepare(struct clk_hw *hw)
 	struct clk_rcg2 *rcg = to_clk_rcg2(hw);
 	struct clk_crm *crm = rcg->clkr.crm;
 
-	if (!rcg->freq_tbl || !crm->initialized)
+	if (!rcg->freq_tbl && !crm->initialized)
 		return 0;
 
 	return clk_rcg2_vote_bw(hw, rcg->current_freq);
@@ -2192,7 +2206,7 @@ const struct clk_ops clk_rcg2_crmb_ops = {
 	.get_parent = clk_rcg2_get_parent,
 	.set_rate = clk_rcg2_crmb_set_rate,
 	.determine_rate = clk_rcg2_crmc_determine_rate,
-	.recalc_rate = clk_rcg2_crmc_recalc_rate,
+	.recalc_rate = clk_rcg2_recalc_rate,
 	.init = clk_rcg2_crmb_init,
 	.debug_init = clk_common_debug_init,
 };

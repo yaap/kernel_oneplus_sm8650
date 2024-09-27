@@ -28,4 +28,147 @@ source "drivers/soc/ux500/Kconfig"
 source "drivers/soc/versatile/Kconfig"
 source "drivers/soc/xilinx/Kconfig"
 
+#ifdef OPLUS_FEATURE_MM_FEEDBACK
+source "drivers/soc/oplus/multimedia/Kconfig"
+#endif /* OPLUS_FEATURE_MM_FEEDBACK */
+
+source "kernel/oplus_cpu/thermal/Kconfig"
+
+#ifdef OPLUS_FEATURE_OMRG
+source "kernel/oplus_cpu/oplus_omrg/Kconfig"
+#endif /* OPLUS_FEATURE_OMRG */
+
+#ifdef OPLUS_FEATURE_BOOT
+source "drivers/soc/oplus/boot/cmdline_parser/Kconfig"
+source "drivers/soc/oplus/boot/bootloader_log/Kconfig"
+source "drivers/soc/oplus/boot/oplus_projectinfo/Kconfig"
+source "drivers/soc/oplus/boot/bootmode/Kconfig"
+source "drivers/soc/oplus/boot/htb/Kconfig"
+#endif /* OPLUS_FEATURE_BOOT */
+
+#ifdef OPLUS_FEATURE_PHOENIX
+source "drivers/soc/oplus/boot/oplus_phoenix/Kconfig"
+#endif
+
+#ifdef OPLUS_FEATURE_MIDAS_GKI
+source "drivers/soc/oplus/midas/Kconfig"
+#endif
+
+#ifdef OPLUS_FEATURE_QCOM_WATCHDOG
+source "drivers/soc/oplus/boot/qcom_watchdog/Kconfig"
+#endif
+
 endmenu
+
+#ifdef OPLUS_FEATURE_TP_BASIC
+source "drivers/soc/oplus/device_info/Kconfig"
+#endif /* OPLUS_FEATURE_TP_BASIC */
+
+#ifdef OPLUS_TRIKEY_MAIN
+source "drivers/soc/oplus/tri_state_key/Kconfig"
+#endif /* CONFIG_OPLUS_TRIKEY_MAIN */
+
+#ifdef OPLUS_FEATURE_DFT
+source "drivers/soc/oplus/dft/Kconfig"
+#endif /* OPLUS_FEATURE_DFT */
+
+source "drivers/soc/oplus/dfr/Kconfig"
+
+source "drivers/soc/oplus/storage/Kconfig"
+
+#ifdef OPLUS_FEATURE_WIFI_ROUTERBOOST
+source "drivers/soc/oplus/wifi/oplus_connectivity_routerboost/Kconfig"
+#endif /* OPLUS_FEATURE_WIFI_ROUTERBOOST */
+
+#ifdef OPLUS_FEATURE_WIFI_SLA
+source "drivers/soc/oplus/wifi/oplus_connectivity_sla/Kconfig"
+#endif /* OPLUS_FEATURE_WIFI_SLA */
+
+#ifdef OPLUS_FEATURE_WIFI_CAPCENTER
+source "drivers/soc/oplus/wifi/oplus_wificapcenter/Kconfig"
+#endif /* OPLUS_FEATURE_WIFI_CAPCENTER */
+
+#ifdef OPLUS_FEATURE_WIFI_SMARTANTENNA
+source "drivers/soc/oplus/wifi/oplus_wifi_wsa/Kconfig"
+#endif /* OPLUS_FEATURE_WIFI_SMARTANTENNA */
+
+#ifdef OPLUS_FEATURE_DATA_MODULE
+source "drivers/soc/oplus/network/data_module/Kconfig"
+#endif /* OPLUS_FEATURE_DATA_MODULE */
+
+#ifdef OPLUS_FEATURE_LINKPOWER_MODULE
+source "drivers/soc/oplus/network/linkpower_module/Kconfig"
+#endif /* OPLUS_FEATURE_LINKPOWER_MODULE */
+
+#ifdef OPLUS_FEATURE_APP_MONITOR
+source "drivers/soc/oplus/network/oplus_apps_monitor/Kconfig"
+#endif /* OPLUS_FEATURE_APP_MONITOR */
+
+#ifdef OPLUS_FEATURE_DNS_HOOK
+source "drivers/soc/oplus/network/oplus_dns_hook/Kconfig"
+#endif /* OPLUS_FEATURE_DNS_HOOK */
+
+#ifdef OPLUS_FEATURE_GAME_FIRST
+source "drivers/soc/oplus/network/oplus_game_first/Kconfig"
+#endif /* OPLUS_FEATURE_GAME_FIRST */
+
+#ifdef OPLUS_FEATURE_ESIM
+source "drivers/soc/oplus/network/oplus_network_esim/Kconfig"
+#endif /* OPLUS_FEATURE_ESIM */
+
+#ifdef OPLUS_FEATURE_OEM_QMI
+source "drivers/soc/oplus/network/oplus_network_oem_qmi/Kconfig"
+#endif /* OPLUS_FEATURE_OEM_QMI */
+
+#ifdef OPLUS_FEATURE_SIM_DETECT
+source "drivers/soc/oplus/network/oplus_network_sim_detect/Kconfig"
+#endif /* OPLUS_FEATURE_SIM_DETECT */
+
+#ifdef OPLUS_FEATURE_NETWORK_KERNEL
+source "drivers/soc/oplus/network/oplus_network_tuning/Kconfig"
+#endif /* OPLUS_FEATURE_NETWORK_KERNEL */
+
+#ifdef OPLUS_FEATURE_QR_SCAN
+source "drivers/soc/oplus/network/oplus_qr_scan/Kconfig"
+#endif /* OPLUS_FEATURE_QR_SCAN */
+
+#ifdef OPLUS_FEATURE_RF_CABLE_MONITOR
+source "drivers/soc/oplus/network/oplus_rf_cable_monitor/Kconfig"
+#endif /* OPLUS_FEATURE_RF_CABLE_MONITOR */
+
+#ifdef OPLUS_FEATURE_DATA_EVAL
+source "drivers/soc/oplus/network/oplus_score/Kconfig"
+#endif /* OPLUS_FEATURE_DATA_EVAL */
+
+#ifdef OPLUS_FEATURE_ESTABLISH_REPORT
+source "drivers/soc/oplus/network/oplus_socket_stats_report/Kconfig"
+#endif /* OPLUS_FEATURE_ESTABLISH_REPORT */
+
+#ifdef OPLUS_FEATURE_STATS_CALC
+source "drivers/soc/oplus/network/oplus_stats_calc/Kconfig"
+#endif /* OPLUS_FEATURE_STATS_CALC */
+
+#ifdef OPLUS_FEATURE_VIRTUAL_NET
+source "drivers/soc/oplus/network/oplus_vnet/Kconfig"
+#endif /* OPLUS_FEATURE_VIRTUAL_NET */
+
+#ifdef OPLUS_FEATURE_HANS
+source "drivers/soc/oplus/network/hans/Kconfig"
+#endif /* OPLUS_FEATURE_HANS */
+
+#ifdef OPLUS_FEATURE_MDMFEATURE
+source "drivers/soc/oplus/radio/mdmfeature/Kconfig"
+#endif /* OPLUS_FEATURE_MDMFEATURE */
+
+#ifdef OPLUS_FEATURE_RECORD_MDMRST
+source "drivers/soc/oplus/radio/mdmrst/Kconfig"
+#endif /* OPLUS_FEATURE_RECORD_MDMRST */
+
+#ifdef OPLUS_SUBSYS_SLEEP_MONITOR
+source "drivers/soc/oplus/power/subsys_sleep_monitor/Kconfig"
+#endif /* OPLUS_SUBSYS_SLEEP_MONITOR */
+
+source "drivers/soc/oplus/sensors/oplus_consumer_ir/Kconfig"
+source "drivers/soc/oplus/sensors/pseudo-sensor/Kconfig"
+source "drivers/soc/oplus/sensors/sensor/Kconfig"
+

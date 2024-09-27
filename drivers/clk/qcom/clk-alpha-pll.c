@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (c) 2015, 2018-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2024, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/kernel.h>
@@ -148,19 +148,6 @@ const u8 clk_alpha_pll_regs[][PLL_OFF_MAX_REGS] = {
 		[PLL_OFF_OPMODE] = 0x28,
 		[PLL_OFF_STATUS] = 0x38,
 	},
-	[CLK_ALPHA_PLL_TYPE_ZONDA_EVO] =  {
-		[PLL_OFF_L_VAL] = 0x04,
-		[PLL_OFF_ALPHA_VAL] = 0x08,
-		[PLL_OFF_USER_CTL] = 0x0c,
-		[PLL_OFF_USER_CTL_U] = 0x10,
-		[PLL_OFF_CONFIG_CTL] = 0x14,
-		[PLL_OFF_CONFIG_CTL_U] = 0x18,
-		[PLL_OFF_CONFIG_CTL_U1] = 0x1c,
-		[PLL_OFF_TEST_CTL] = 0x20,
-		[PLL_OFF_TEST_CTL_U] = 0x24,
-		[PLL_OFF_TEST_CTL_U1] = 0x28,
-		[PLL_OFF_OPMODE] = 0x2c,
-	},
 	[CLK_ALPHA_PLL_TYPE_ZONDA_5LPE] = {
 		[PLL_OFF_L_VAL] = 0x04,
 		[PLL_OFF_ALPHA_VAL] = 0x08,
@@ -250,22 +237,6 @@ const u8 clk_alpha_pll_regs[][PLL_OFF_MAX_REGS] = {
 		[PLL_OFF_CONFIG_CTL] = 0x1C,
 		[PLL_OFF_STATUS] = 0x20,
 	},
-	[CLK_ALPHA_PLL_TYPE_LUCID_5LPE] = {
-		[PLL_OFF_L_VAL] = 0x04,
-		[PLL_OFF_CAL_L_VAL] = 0x08,
-		[PLL_OFF_USER_CTL] = 0x0c,
-		[PLL_OFF_USER_CTL_U] = 0x10,
-		[PLL_OFF_USER_CTL_U1] = 0x14,
-		[PLL_OFF_CONFIG_CTL] = 0x18,
-		[PLL_OFF_CONFIG_CTL_U] = 0x1c,
-		[PLL_OFF_CONFIG_CTL_U1] = 0x20,
-		[PLL_OFF_TEST_CTL] = 0x24,
-		[PLL_OFF_TEST_CTL_U] = 0x28,
-		[PLL_OFF_TEST_CTL_U1] = 0x2c,
-		[PLL_OFF_STATUS] = 0x30,
-		[PLL_OFF_OPMODE] = 0x38,
-		[PLL_OFF_ALPHA_VAL] = 0x40,
-	},
 };
 EXPORT_SYMBOL_GPL(clk_alpha_pll_regs);
 
@@ -294,13 +265,11 @@ EXPORT_SYMBOL_GPL(clk_alpha_pll_regs);
 #define TRION_PCAL_DONE		BIT(26)
 
 /* LUCID PLL specific settings and offsets */
-#define LUCID_PLL_CAL_VAL		0x44
 #define LUCID_PCAL_DONE		BIT(27)
 
 /* LUCID 5LPE PLL specific settings and offsets */
 #define LUCID_5LPE_PCAL_DONE		BIT(11)
 #define LUCID_5LPE_ALPHA_PLL_ACK_LATCH	BIT(13)
-#define LUCID_5LPE_BYPASS_LATCH		BIT(10)
 #define LUCID_5LPE_PLL_LATCH_INPUT	BIT(14)
 #define LUCID_5LPE_ENABLE_VOTE_RUN	BIT(21)
 #define LUCID_EVO_PCAL_NOT_DONE		BIT(8)
@@ -315,6 +284,7 @@ EXPORT_SYMBOL_GPL(clk_alpha_pll_regs);
 
 /* LUCID EVO PLL specific settings and offsets */
 #define LUCID_EVO_PCAL_NOT_DONE		BIT(8)
+#define LUCID_EVO_ENABLE_VOTE_RUN       BIT(25)
 #define LUCID_EVO_PLL_L_VAL_MASK        GENMASK(15, 0)
 #define LUCID_EVO_PLL_CAL_L_VAL_SHIFT	16
 
@@ -574,11 +544,7 @@ static int clk_alpha_pll_enable(struct clk_hw *hw)
 		ret = clk_enable_regmap(hw);
 		if (ret)
 			return ret;
-		ret = wait_for_pll_enable_active(pll);
-		if (ret == 0)
-			if (pll->flags & SUPPORTS_FSM_MODE)
-				*pll->soft_vote |= (pll->soft_vote_mask);
-		return ret;
+		return wait_for_pll_enable_active(pll);
 	}
 
 	/* Skip if already enabled */
@@ -626,12 +592,7 @@ static void clk_alpha_pll_disable(struct clk_hw *hw)
 
 	/* If in FSM mode, just unvote it */
 	if (val & PLL_VOTE_FSM_ENA) {
-		if (pll->flags & SUPPORTS_FSM_MODE) {
-			*pll->soft_vote &= ~(pll->soft_vote_mask);
-			if (!*pll->soft_vote)
-				clk_disable_regmap(hw);
-		} else
-			clk_disable_regmap(hw);
+		clk_disable_regmap(hw);
 		return;
 	}
 
@@ -662,20 +623,9 @@ alpha_pll_calc_rate(u64 prate, u32 l, u32 a, u32 alpha_width)
 	return roundup(rate, 1000);
 }
 
-static void zonda_pll_adjust_l_val(unsigned long rate, unsigned long prate, u32 *l)
-{
-	u64 remainder, quotient;
-
-	quotient = rate;
-	remainder = do_div(quotient, prate);
-	*l = quotient;
-
-	if ((remainder * 2) / prate)
-		*l = *l + 1;
-}
-
 static unsigned long
-alpha_pll_round_rate(unsigned long rate, unsigned long prate, u32 *l, u64 *a, u32 alpha_width)
+alpha_pll_round_rate(unsigned long rate, unsigned long prate, u32 *l, u64 *a,
+		     u32 alpha_width)
 {
 	u64 remainder;
 	u64 quotient;
@@ -872,7 +822,7 @@ static int __clk_alpha_pll_set_rate(struct clk_hw *hw, unsigned long rate,
 	 */
 	if (is_enabled(&pll->clkr.hw) &&
 	    !(pll->flags & SUPPORTS_DYNAMIC_UPDATE))
-		clk_alpha_pll_disable(hw);
+		hw->init->ops->disable(hw);
 
 	regmap_write(pll->clkr.regmap, PLL_L_VAL(pll), l);
 
@@ -911,9 +861,9 @@ static int __clk_alpha_pll_set_rate(struct clk_hw *hw, unsigned long rate,
 		(pll->flags & SUPPORTS_DYNAMIC_UPDATE))
 		clk_alpha_pll_dynamic_update(pll);
 
-	if (!is_enabled(&pll->clkr.hw) &&
+	if (is_enabled(&pll->clkr.hw) &&
 		!(pll->flags & SUPPORTS_DYNAMIC_UPDATE))
-		clk_alpha_pll_enable(hw);
+		hw->init->ops->enable(hw);
 
 	return clk_alpha_pll_update_latch(pll, is_enabled);
 }
@@ -1313,10 +1263,6 @@ static void clk_pll_restore_context(struct clk_hw *hw)
 		break;
 	case CLK_ALPHA_PLL_TYPE_RIVIAN_EVO:
 		clk_rivian_evo_pll_configure(pll, pll->clkr.regmap,
-					pll->config);
-		break;
-	case CLK_ALPHA_PLL_TYPE_LUCID_5LPE:
-		clk_lucid_5lpe_pll_configure(pll, pll->clkr.regmap,
 					pll->config);
 		break;
 	default:
@@ -2083,86 +2029,6 @@ const struct clk_ops clk_alpha_pll_postdiv_fabia_ops = {
 };
 EXPORT_SYMBOL_GPL(clk_alpha_pll_postdiv_fabia_ops);
 
-int clk_lucid_5lpe_pll_configure(struct clk_alpha_pll *pll,
-		struct regmap *regmap,	const struct alpha_pll_config *config)
-{
-	int ret;
-
-	ret = trion_pll_is_enabled(pll, regmap);
-	if (ret < 0)
-		return ret;
-	else if (ret) {
-		pr_warn("%s PLL is already enabled\n",
-				clk_hw_get_name(&pll->clkr.hw));
-		return 0;
-	}
-
-	if (config->l)
-		ret |= regmap_write(regmap, PLL_L_VAL(pll), config->l);
-
-	if (config->cal_l)
-		ret |= regmap_write(regmap, PLL_CAL_L_VAL(pll), config->cal_l);
-	else
-		ret |= regmap_write(regmap, PLL_CAL_L_VAL(pll),
-			LUCID_PLL_CAL_VAL);
-
-	if (config->alpha)
-		ret |= regmap_write(regmap, PLL_ALPHA_VAL(pll), config->alpha);
-
-	if (config->config_ctl_val)
-		ret |= regmap_write(regmap, PLL_CONFIG_CTL(pll),
-				config->config_ctl_val);
-
-	if (config->config_ctl_hi_val)
-		ret |= regmap_write(regmap, PLL_CONFIG_CTL_U(pll),
-				config->config_ctl_hi_val);
-
-	if (config->config_ctl_hi1_val)
-		ret |= regmap_write(regmap, PLL_CONFIG_CTL_U1(pll),
-				config->config_ctl_hi1_val);
-
-	if (config->user_ctl_val)
-		ret |= regmap_write(regmap, PLL_USER_CTL(pll),
-				config->user_ctl_val);
-
-	if (config->user_ctl_hi_val)
-		ret |= regmap_write(regmap, PLL_USER_CTL_U(pll),
-				config->user_ctl_hi_val);
-
-	if (config->user_ctl_hi1_val)
-		ret |= regmap_write(regmap, PLL_USER_CTL_U1(pll),
-				config->user_ctl_hi1_val);
-
-	if (config->test_ctl_val)
-		ret |= regmap_write(regmap, PLL_TEST_CTL(pll),
-				config->test_ctl_val);
-
-	if (config->test_ctl_hi_val)
-		ret |= regmap_write(regmap, PLL_TEST_CTL_U(pll),
-				config->test_ctl_hi_val);
-
-	if (config->test_ctl_hi1_val)
-		ret |= regmap_write(regmap, PLL_TEST_CTL_U1(pll),
-				config->test_ctl_hi1_val);
-
-	/* Disable PLL output */
-	ret |= regmap_update_bits(regmap, PLL_MODE(pll),
-					PLL_OUTCTRL, 0);
-
-	/* Set operation mode to STANDBY */
-	ret |= regmap_write(regmap, PLL_OPMODE(pll), PLL_STANDBY);
-
-	/* PLL should be in OFF mode before continuing */
-	wmb();
-
-	/* Place the PLL in STANDBY mode */
-	ret |= regmap_update_bits(regmap, PLL_MODE(pll),
-				 PLL_RESET_N, PLL_RESET_N);
-
-	return ret ? -EIO : 0;
-}
-EXPORT_SYMBOL_GPL(clk_lucid_5lpe_pll_configure);
-
 /**
  * clk_trion_pll_configure - configure the trion pll
  *
@@ -2300,35 +2166,29 @@ static int __alpha_pll_trion_set_rate(struct clk_hw *hw, unsigned long rate,
 	regmap_write(pll->clkr.regmap, PLL_L_VAL(pll), l);
 	regmap_write(pll->clkr.regmap, PLL_ALPHA_VAL(pll), a);
 
-	if (pll->flags & BYPASS_LATCH) {
-		regmap_update_bits(pll->clkr.regmap, PLL_USER_CTL_U(pll),
-				   LUCID_5LPE_BYPASS_LATCH, LUCID_5LPE_BYPASS_LATCH);
-	} else {
+	/* Latch the PLL input */
+	ret = regmap_update_bits(pll->clkr.regmap, PLL_MODE(pll), latch_bit, latch_bit);
+	if (ret)
+		return ret;
 
-		/* Latch the PLL input */
-		ret = regmap_update_bits(pll->clkr.regmap, PLL_MODE(pll), latch_bit, latch_bit);
+	/* Wait for 2 reference cycles before checking the ACK bit. */
+	udelay(1);
+	regmap_read(pll->clkr.regmap, PLL_MODE(pll), &val);
+	if (!(val & PLL_UPDATE_BYPASS)) {
+		ret = wait_for_pll_update(pll);
 		if (ret)
-			return ret;
-
-		/* Wait for 2 reference cycles before checking the ACK bit. */
-		udelay(1);
-		regmap_read(pll->clkr.regmap, PLL_MODE(pll), &val);
-		if (!(val & PLL_UPDATE_BYPASS)) {
-			ret = wait_for_pll_update(pll);
-			if (ret)
-				WARN_CLK(&pll->clkr.hw, 1, "PLL Update clear failed\n");
-			return ret;
-		} else if (!(val & latch_ack)) {
-			WARN_CLK(&pll->clkr.hw, 1,
-					"Lucid PLL latch failed. Output may be unstable!\n");
-			return -EINVAL;
-		}
-
-		/* Return the latch input to 0 */
-		ret = regmap_update_bits(pll->clkr.regmap, PLL_MODE(pll), latch_bit, 0);
-		if (ret)
-			return ret;
+			WARN_CLK(&pll->clkr.hw, 1, "PLL Update clear failed\n");
+		return ret;
+	} else if (!(val & latch_ack)) {
+		WARN_CLK(&pll->clkr.hw, 1,
+				"Lucid PLL latch failed. Output may be unstable!\n");
+		return -EINVAL;
 	}
+
+	/* Return the latch input to 0 */
+	ret = regmap_update_bits(pll->clkr.regmap, PLL_MODE(pll), latch_bit, 0);
+	if (ret)
+		return ret;
 
 	if (clk_hw_is_enabled(hw)) {
 		ret = wait_for_pll_enable_lock(pll);
@@ -2882,14 +2742,8 @@ static int clk_zonda_pll_set_rate(struct clk_hw *hw, unsigned long rate,
 	if (ret < 0)
 		return ret;
 
-	if (a && (a & BIT(15)))
-		zonda_pll_adjust_l_val(rate, prate, &l);
-
 	regmap_write(pll->clkr.regmap, PLL_ALPHA_VAL(pll), a);
 	regmap_write(pll->clkr.regmap, PLL_L_VAL(pll), l);
-
-	if (!clk_hw_is_enabled(hw))
-		return 0;
 
 	/* Wait before polling for the frequency latch */
 	udelay(5);
@@ -2908,33 +2762,6 @@ static int clk_zonda_pll_set_rate(struct clk_hw *hw, unsigned long rate,
 	/* Wait for PLL output to stabilize */
 	udelay(100);
 	return 0;
-}
-
-static unsigned long alpha_pll_adjust_calc_rate(u64 prate, u32 l, u32 frac, u32 alpha_width)
-{
-	uint64_t tmp;
-
-	frac = 100 - DIV_ROUND_UP_ULL((frac * 100), BIT(alpha_width));
-
-	tmp = frac * prate;
-	do_div(tmp, 100);
-
-	return (l * prate) - tmp;
-}
-
-static unsigned long
-clk_zonda_pll_recalc_rate(struct clk_hw *hw, unsigned long parent_rate)
-{
-	struct clk_alpha_pll *pll = to_clk_alpha_pll(hw);
-	u32 l, frac;
-
-	regmap_read(pll->clkr.regmap, PLL_L_VAL(pll), &l);
-	regmap_read(pll->clkr.regmap, PLL_ALPHA_VAL(pll), &frac);
-
-	if (frac & BIT(15))
-		return alpha_pll_adjust_calc_rate(parent_rate, l, frac,	pll_alpha_width(pll));
-	else
-		return alpha_pll_calc_rate(parent_rate, l, frac, pll_alpha_width(pll));
 }
 
 static void clk_alpha_pll_zonda_list_registers(struct seq_file *f,
@@ -3340,9 +3167,6 @@ static int clk_regera_pll_set_rate(struct clk_hw *hw, unsigned long rate,
 		pr_err("Call set rate on the PLL with rounded rates!\n");
 		return -EINVAL;
 	}
-
-	if (a && (a & BIT(15)))
-		zonda_pll_adjust_l_val(rate, prate, &l);
 
 	regmap_write(pll->clkr.regmap, PLL_ALPHA_VAL(pll), a);
 	regmap_write(pll->clkr.regmap, PLL_L_VAL(pll), l);
@@ -3993,303 +3817,6 @@ const struct clk_ops clk_alpha_pll_crm_postdiv_lucid_evo_ops = {
 };
 EXPORT_SYMBOL(clk_alpha_pll_crm_postdiv_lucid_evo_ops);
 
-static int __zonda_pll_is_enabled(struct clk_alpha_pll *pll,
-					struct regmap *regmap)
-{
-	u32 mode_regval, opmode_regval;
-	int ret;
-
-	ret = regmap_read(regmap, PLL_MODE(pll), &mode_regval);
-	ret |= regmap_read(regmap, PLL_OPMODE(pll), &opmode_regval);
-	if (ret) {
-		pr_err("zonda pll is enabled reg read failed\n");
-		return ret;
-	}
-
-	return ((opmode_regval & PLL_RUN) &&
-		(mode_regval & PLL_OUTCTRL));
-}
-
-static int clk_zonda_pll_is_enabled(struct clk_hw *hw)
-{
-	struct clk_alpha_pll *pll = to_clk_alpha_pll(hw);
-
-	return __zonda_pll_is_enabled(pll, pll->clkr.regmap);
-}
-
-static int clk_zonda_evo_pll_enable(struct clk_hw *hw)
-{
-	struct clk_alpha_pll *pll = to_clk_alpha_pll(hw);
-	u32 val, test_ctl_val;
-	int ret;
-
-	ret = regmap_read(pll->clkr.regmap, PLL_USER_CTL(pll), &val);
-	if (ret)
-		return ret;
-
-	if (val & LUCID_EVO_ENABLE_VOTE_RUN) {
-		ret = clk_enable_regmap(hw);
-		if (ret)
-			return ret;
-		return wait_for_pll_enable_active(pll);
-	}
-
-	/* Get the PLL out of bypass mode */
-	ret = regmap_update_bits(pll->clkr.regmap, PLL_MODE(pll),
-						PLL_BYPASSNL, PLL_BYPASSNL);
-	if (ret)
-		return ret;
-
-	/*
-	 * H/W requires a 1us delay between disabling the bypass and
-	 * de-asserting the reset.
-	 */
-	mb();
-	udelay(1);
-
-	ret = regmap_update_bits(pll->clkr.regmap, PLL_MODE(pll),
-						 PLL_RESET_N, PLL_RESET_N);
-	if (ret)
-		return ret;
-
-	/* Set operation mode to RUN */
-	regmap_write(pll->clkr.regmap, PLL_OPMODE(pll),
-						PLL_RUN);
-
-	ret = regmap_read(pll->clkr.regmap, PLL_TEST_CTL(pll), &test_ctl_val);
-	if (ret)
-		return ret;
-
-	/* If cfa mode then poll for freq lock */
-	if (test_ctl_val & ZONDA_STAY_IN_CFA)
-		ret = wait_for_zonda_pll_freq_lock(pll);
-	else
-		ret = wait_for_pll_enable_lock(pll);
-	if (ret)
-		return ret;
-
-	/* Enable the PLL outputs */
-	ret = regmap_update_bits(pll->clkr.regmap, PLL_USER_CTL(pll),
-				ZONDA_PLL_OUT_MASK, ZONDA_PLL_OUT_MASK);
-	if (ret)
-		return ret;
-
-	/* Enable the global PLL outputs */
-	ret = regmap_update_bits(pll->clkr.regmap, PLL_MODE(pll),
-				 PLL_OUTCTRL, PLL_OUTCTRL);
-	if (ret)
-		return ret;
-
-	/* Ensure that the write above goes through before returning. */
-	mb();
-
-	return 0;
-}
-
-static void clk_zonda_evo_pll_disable(struct clk_hw *hw)
-{
-	struct clk_alpha_pll *pll = to_clk_alpha_pll(hw);
-	u32 val, mask;
-	int ret;
-
-	ret = regmap_read(pll->clkr.regmap, PLL_USER_CTL(pll), &val);
-	if (ret)
-		return;
-
-	if (val & LUCID_EVO_ENABLE_VOTE_RUN) {
-		clk_disable_regmap(hw);
-		return;
-	}
-
-	/* Disable the global PLL output */
-	ret = regmap_update_bits(pll->clkr.regmap, PLL_MODE(pll),
-							PLL_OUTCTRL, 0);
-	if (ret)
-		return;
-
-	/* Disable the PLL outputs */
-	ret = regmap_update_bits(pll->clkr.regmap, PLL_USER_CTL(pll),
-					ZONDA_PLL_OUT_MASK, 0);
-
-	/* Put the PLL in bypass and reset */
-	mask = PLL_RESET_N | PLL_BYPASSNL;
-	ret = regmap_update_bits(pll->clkr.regmap, PLL_MODE(pll), mask, 0);
-	if (ret)
-		return;
-
-	/* Place the PLL mode in OFF state */
-	regmap_write(pll->clkr.regmap, PLL_OPMODE(pll),
-			0x0);
-}
-
-static void clk_alpha_pll_zonda_evo_list_registers(struct seq_file *f,
-							struct clk_hw *hw)
-{
-	struct clk_alpha_pll *pll = to_clk_alpha_pll(hw);
-	int size, i, val;
-
-	static struct clk_register_data data[] = {
-		{"PLL_MODE", PLL_OFF_MODE},
-		{"PLL_L_VAL", PLL_OFF_L_VAL},
-		{"PLL_ALPHA_VAL", PLL_OFF_ALPHA_VAL},
-		{"PLL_USER_CTL", PLL_OFF_USER_CTL},
-		{"PLL_USER_CTL_U", PLL_OFF_USER_CTL_U},
-		{"PLL_CONFIG_CTL", PLL_OFF_CONFIG_CTL},
-		{"PLL_CONFIG_CTL_U", PLL_OFF_CONFIG_CTL_U},
-		{"PLL_CONFIG_CTL_U1", PLL_OFF_CONFIG_CTL_U1},
-		{"PLL_TEST_CTL", PLL_OFF_TEST_CTL},
-		{"PLL_TEST_CTL_U", PLL_OFF_TEST_CTL_U},
-		{"PLL_TEST_CTL_U1", PLL_OFF_TEST_CTL_U1},
-		{"PLL_OPMODE", PLL_OFF_OPMODE},
-	};
-
-	static struct clk_register_data data1[] = {
-		{"APSS_PLL_VOTE", 0x0},
-	};
-
-	size = ARRAY_SIZE(data);
-
-	for (i = 0; i < size; i++) {
-		regmap_read(pll->clkr.regmap, pll->offset +
-					pll->regs[data[i].offset], &val);
-		clock_debug_output(f, "%20s: 0x%.8x\n", data[i].name, val);
-	}
-
-	regmap_read(pll->clkr.regmap, pll->offset + pll->regs[data[0].offset],
-								&val);
-
-	if (val & PLL_FSM_ENA) {
-		regmap_read(pll->clkr.regmap, pll->clkr.enable_reg +
-				data1[0].offset, &val);
-		clock_debug_output(f, "%20s: 0x%.8x\n", data1[0].name, val);
-	}
-}
-
-static struct clk_regmap_ops clk_alpha_pll_zonda_evo_regmap_ops = {
-	.list_registers = clk_alpha_pll_zonda_evo_list_registers,
-};
-
-static int clk_alpha_pll_zonda_evo_init(struct clk_hw *hw)
-{
-	struct clk_regmap *rclk = to_clk_regmap(hw);
-
-	if (!rclk->ops)
-		rclk->ops = &clk_alpha_pll_zonda_evo_regmap_ops;
-	return 0;
-}
-
-int clk_zonda_evo_pll_configure(struct clk_alpha_pll *pll, struct regmap *regmap,
-				const struct alpha_pll_config *config)
-{
-	int ret;
-
-	ret = __zonda_pll_is_enabled(pll, regmap);
-	if (ret)
-		return ret;
-
-	if (config->l)
-		ret |= regmap_write(regmap, PLL_L_VAL(pll), config->l);
-
-	if (config->alpha)
-		ret |= regmap_write(regmap, PLL_ALPHA_VAL(pll), config->alpha);
-
-	if (config->config_ctl_val)
-		ret |= regmap_write(regmap, PLL_CONFIG_CTL(pll),
-				config->config_ctl_val);
-
-	if (config->config_ctl_hi_val)
-		ret |= regmap_write(regmap, PLL_CONFIG_CTL_U(pll),
-				config->config_ctl_hi_val);
-
-	if (config->config_ctl_hi1_val)
-		ret |= regmap_write(regmap, PLL_CONFIG_CTL_U1(pll),
-				config->config_ctl_hi1_val);
-
-	if (config->user_ctl_val)
-		ret |= regmap_write(regmap, PLL_USER_CTL(pll),
-				config->user_ctl_val);
-
-	if (config->user_ctl_hi_val)
-		ret |= regmap_write(regmap, PLL_USER_CTL_U(pll),
-				config->user_ctl_hi_val);
-
-	if (config->test_ctl_val)
-		ret |= regmap_write(regmap, PLL_TEST_CTL(pll),
-				config->test_ctl_val);
-
-	if (config->test_ctl_hi_val)
-		ret |= regmap_write(regmap, PLL_TEST_CTL_U(pll),
-				config->test_ctl_hi_val);
-
-	if (config->test_ctl_hi1_val)
-		ret |= regmap_write(regmap, PLL_TEST_CTL_U1(pll),
-				config->test_ctl_hi1_val);
-
-	ret |= regmap_update_bits(regmap, PLL_MODE(pll),
-			 PLL_BYPASSNL, 0);
-
-	/* Disable PLL output */
-	ret |= regmap_update_bits(regmap, PLL_MODE(pll),
-			 PLL_OUTCTRL, 0);
-
-	/* Set operation mode to OFF */
-	ret |= regmap_write(regmap, PLL_OPMODE(pll), PLL_STANDBY);
-
-	/* PLL should be in OFF mode before continuing */
-	wmb();
-
-	/* Place the PLL in STANDBY mode */
-	ret |= regmap_update_bits(regmap, PLL_MODE(pll),
-				 PLL_RESET_N, PLL_RESET_N);
-
-	return ret ? -EIO : 0;
-}
-EXPORT_SYMBOL_GPL(clk_zonda_evo_pll_configure);
-
-const struct clk_ops clk_alpha_pll_zonda_evo_ops = {
-	.prepare = clk_prepare_regmap,
-	.unprepare = clk_unprepare_regmap,
-	.pre_rate_change = clk_pre_change_regmap,
-	.post_rate_change = clk_post_change_regmap,
-	.enable = clk_zonda_evo_pll_enable,
-	.disable = clk_zonda_evo_pll_disable,
-	.set_rate = clk_zonda_pll_set_rate,
-	.is_enabled = clk_zonda_pll_is_enabled,
-	.recalc_rate = clk_zonda_pll_recalc_rate,
-	.round_rate = clk_alpha_pll_round_rate,
-	.debug_init = clk_common_debug_init,
-	.init = clk_alpha_pll_zonda_evo_init,
-#ifdef CONFIG_COMMON_CLK_QCOM_DEBUG
-	.list_rate_vdd_level = clk_list_rate_vdd_level,
-#endif
-};
-EXPORT_SYMBOL_GPL(clk_alpha_pll_zonda_evo_ops);
-
-const struct clk_ops clk_alpha_pll_fixed_zonda_evo_ops = {
-	.prepare = clk_prepare_regmap,
-	.unprepare = clk_unprepare_regmap,
-	.pre_rate_change = clk_pre_change_regmap,
-	.post_rate_change = clk_post_change_regmap,
-	.enable = clk_zonda_evo_pll_enable,
-	.disable = clk_zonda_evo_pll_disable,
-	.is_enabled = clk_zonda_pll_is_enabled,
-	.recalc_rate = clk_zonda_pll_recalc_rate,
-	.round_rate = clk_alpha_pll_round_rate,
-	.debug_init = clk_common_debug_init,
-	.init = clk_alpha_pll_zonda_evo_init,
-#ifdef CONFIG_COMMON_CLK_QCOM_DEBUG
-	.list_rate_vdd_level = clk_list_rate_vdd_level,
-#endif
-};
-EXPORT_SYMBOL_GPL(clk_alpha_pll_fixed_zonda_evo_ops);
-
-const struct clk_ops clk_alpha_pll_postdiv_zonda_evo_ops = {
-	.recalc_rate = clk_alpha_pll_postdiv_fabia_recalc_rate,
-	.round_rate = clk_alpha_pll_postdiv_fabia_round_rate,
-	.set_rate = clk_alpha_pll_postdiv_fabia_set_rate,
-};
-EXPORT_SYMBOL_GPL(clk_alpha_pll_postdiv_zonda_evo_ops);
-
 int clk_rivian_evo_pll_configure(struct clk_alpha_pll *pll,
 		struct regmap *regmap, const struct alpha_pll_config *config)
 {
@@ -4577,7 +4104,7 @@ static int clk_alpha_pll_calibrate(struct clk_hw *hw)
 
 
 	pr_debug("pll %s: setting back to required rate %lu, freq_hz %ld\n",
-				clk_hw_get_name(hw), clk_hw_get_rate(hw), freq_hz);
+				hw->init->name, clk_hw_get_rate(hw), freq_hz);
 
 	/* Setup the PLL for the new frequency */
 	a <<= (ALPHA_REG_BITWIDTH - ALPHA_BITWIDTH);
@@ -4623,6 +4150,5 @@ const struct clk_ops clk_alpha_pll_slew_ops = {
 #ifdef CONFIG_COMMON_CLK_QCOM_DEBUG
 	.list_rate_vdd_level = clk_list_rate_vdd_level,
 #endif
-	.restore_context = clk_pll_restore_context,
 };
 EXPORT_SYMBOL(clk_alpha_pll_slew_ops);

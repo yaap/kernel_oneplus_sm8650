@@ -32,7 +32,6 @@ static DEFINE_MUTEX(bcm_voter_lock);
  * @ws_list: list containing bcms that have different wake/sleep votes
  * @voter_node: list of bcm voters
  * @tcs_wait: mask for which buckets require TCS completion
- * @has_amc: flag to determine if this voter supports AMC
  * @init: flag to determine when init has completed.
  */
 struct bcm_voter {
@@ -44,7 +43,6 @@ struct bcm_voter {
 	struct list_head ws_list;
 	struct list_head voter_node;
 	u32 tcs_wait;
-	bool has_amc;
 	bool init;
 };
 
@@ -67,40 +65,13 @@ static u64 bcm_div(u64 num, u32 base)
 	return num;
 }
 
-/* BCMs with enable_mask use one-hot-encoding for on/off signaling */
-static void bcm_aggregate_mask(struct qcom_icc_bcm *bcm)
-{
-	struct qcom_icc_node *node;
-	int bucket, i;
-
-	for (bucket = 0; bucket < QCOM_ICC_NUM_BUCKETS; bucket++) {
-		bcm->vote_x[bucket] = 0;
-		bcm->vote_y[bucket] = 0;
-
-		for (i = 0; i < bcm->num_nodes; i++) {
-			node = bcm->nodes[i];
-
-			/* If any vote in this bucket exists, keep the BCM enabled */
-			if (node->sum_avg[bucket] || node->max_peak[bucket])
-				bcm->vote_y[bucket] |= bcm->enable_mask;
-
-			if (node->perf_mode[bucket])
-				bcm->vote_y[bucket] |= bcm->perf_mode_mask;
-		}
-	}
-
-	if (bcm->keepalive) {
-		bcm->vote_y[QCOM_ICC_BUCKET_AMC] |= bcm->enable_mask;
-		bcm->vote_y[QCOM_ICC_BUCKET_WAKE] |= bcm->enable_mask;
-	}
-}
-
 static void bcm_aggregate(struct qcom_icc_bcm *bcm, bool init)
 {
 	struct qcom_icc_node *node;
 	size_t i, bucket;
 	u64 agg_avg[QCOM_ICC_NUM_BUCKETS] = {0};
 	u64 agg_peak[QCOM_ICC_NUM_BUCKETS] = {0};
+	bool perf_mode[QCOM_ICC_NUM_BUCKETS] = {0};
 	u64 temp;
 
 	for (bucket = 0; bucket < QCOM_ICC_NUM_BUCKETS; bucket++) {
@@ -113,6 +84,8 @@ static void bcm_aggregate(struct qcom_icc_bcm *bcm, bool init)
 			temp = bcm_div(node->max_peak[bucket] * bcm->aux_data.width,
 				       node->buswidth);
 			agg_peak[bucket] = max(agg_peak[bucket], temp);
+
+			perf_mode[bucket] |= node->perf_mode[bucket];
 		}
 
 		temp = agg_avg[bucket] * bcm->vote_scale;
@@ -120,6 +93,13 @@ static void bcm_aggregate(struct qcom_icc_bcm *bcm, bool init)
 
 		temp = agg_peak[bucket] * bcm->vote_scale;
 		bcm->vote_y[bucket] = bcm_div(temp, bcm->aux_data.unit);
+
+		if (bcm->enable_mask && (bcm->vote_x[bucket] || bcm->vote_y[bucket])) {
+			bcm->vote_x[bucket] = 0;
+			bcm->vote_y[bucket] = bcm->enable_mask;
+			if (perf_mode[bucket])
+				bcm->vote_y[bucket] |= bcm->perf_mode_mask;
+		}
 	}
 
 	if (bcm->keepalive || bcm->keepalive_early) {
@@ -343,47 +323,45 @@ static int commit_rpmh(struct bcm_voter *voter)
 	struct tcs_cmd cmds[MAX_BCMS];
 	int ret = 0;
 
-	if (voter->has_amc) {
-		/*
-		 * Pre sort the BCMs based on VCD for ease of generating a command list
-		 * that groups the BCMs with the same VCD together. VCDs are numbered
-		 * with lowest being the most expensive time wise, ensuring that
-		 * those commands are being sent the earliest in the queue. This needs
-		 * to be sorted every commit since we can't guarantee the order in which
-		 * the BCMs are added to the list.
-		 */
-		list_sort(NULL, &voter->commit_list, cmp_vcd);
+	/*
+	 * Pre sort the BCMs based on VCD for ease of generating a command list
+	 * that groups the BCMs with the same VCD together. VCDs are numbered
+	 * with lowest being the most expensive time wise, ensuring that
+	 * those commands are being sent the earliest in the queue. This needs
+	 * to be sorted every commit since we can't guarantee the order in which
+	 * the BCMs are added to the list.
+	 */
+	list_sort(NULL, &voter->commit_list, cmp_vcd);
 
-		/*
-		 * Construct the command list based on a pre ordered list of BCMs
-		 * based on VCD.
-		 */
-		tcs_list_gen(voter, QCOM_ICC_BUCKET_AMC, cmds, commit_idx);
-		if (!commit_idx[0])
-			goto out;
-
-		qcom_icc_bcm_log(voter, RPMH_ACTIVE_ONLY_STATE, cmds, commit_idx);
-		ret = rpmh_write_batch(voter->dev, RPMH_ACTIVE_ONLY_STATE,
-				       cmds, commit_idx);
-
-		/*
-		 * Ignore -EBUSY for AMC requests, since this can only happen for AMC
-		 * requests when the RSC is in solver mode. We can only be in solver
-		 * mode at the time of request for secondary RSCs (e.g. Display RSC),
-		 * since the primary Apps RSC is only in solver mode while
-		 * entering/exiting power collapse when SW isn't running. The -EBUSY
-		 * response is expected in solver and is a non-issue, since we just
-		 * want the request to apply to the WAKE set in that case instead.
-		 * Interconnect doesn't know when the RSC is in solver, so just always
-		 * send AMC and ignore the harmless error response.
-		 */
-		if (ret && ret != -EBUSY) {
-			pr_err("Error sending AMC RPMH requests (%d)\n", ret);
-			goto out;
-		}
-	}
+	/*
+	 * Construct the command list based on a pre ordered list of BCMs
+	 * based on VCD.
+	 */
+	tcs_list_gen(voter, QCOM_ICC_BUCKET_AMC, cmds, commit_idx);
+	if (!commit_idx[0])
+		goto out;
 
 	rpmh_invalidate(voter->dev);
+
+	qcom_icc_bcm_log(voter, RPMH_ACTIVE_ONLY_STATE, cmds, commit_idx);
+	ret = rpmh_write_batch(voter->dev, RPMH_ACTIVE_ONLY_STATE,
+			       cmds, commit_idx);
+
+	/*
+	 * Ignore -EBUSY for AMC requests, since this can only happen for AMC
+	 * requests when the RSC is in solver mode. We can only be in solver
+	 * mode at the time of request for secondary RSCs (e.g. Display RSC),
+	 * since the primary Apps RSC is only in solver mode while
+	 * entering/exiting power collapse when SW isn't running. The -EBUSY
+	 * response is expected in solver and is a non-issue, since we just
+	 * want the request to apply to the WAKE set in that case instead.
+	 * Interconnect doesn't know when the RSC is in solver, so just always
+	 * send AMC and ignore the harmless error response.
+	 */
+	if (ret && ret != -EBUSY) {
+		pr_err("Error sending AMC RPMH requests (%d)\n", ret);
+		goto out;
+	}
 
 	list_for_each_entry_safe(bcm, bcm_tmp, &voter->commit_list, list)
 		list_del_init(&bcm->list);
@@ -394,9 +372,10 @@ static int commit_rpmh(struct bcm_voter *voter)
 		 * requirements change as the execution environment transitions
 		 * between different power states.
 		 */
-		if (!voter->has_amc ||
-		    bcm->vote_x[QCOM_ICC_BUCKET_WAKE] != bcm->vote_x[QCOM_ICC_BUCKET_SLEEP] ||
-		    bcm->vote_y[QCOM_ICC_BUCKET_WAKE] != bcm->vote_y[QCOM_ICC_BUCKET_SLEEP])
+		if (bcm->vote_x[QCOM_ICC_BUCKET_WAKE] !=
+		    bcm->vote_x[QCOM_ICC_BUCKET_SLEEP] ||
+		    bcm->vote_y[QCOM_ICC_BUCKET_WAKE] !=
+		    bcm->vote_y[QCOM_ICC_BUCKET_SLEEP])
 			list_add_tail(&bcm->list, &voter->commit_list);
 		else
 			list_del_init(&bcm->ws_list);
@@ -526,12 +505,8 @@ int qcom_icc_bcm_voter_commit(struct bcm_voter *voter)
 
 	mutex_lock(&voter->lock);
 
-	list_for_each_entry(bcm, &voter->commit_list, list) {
-		if (bcm->enable_mask)
-			bcm_aggregate_mask(bcm);
-		else
-			bcm_aggregate(bcm, voter->init);
-	}
+	list_for_each_entry(bcm, &voter->commit_list, list)
+		bcm_aggregate(bcm, voter->init);
 
 	if (voter->crm)
 		ret = commit_crm(voter);
@@ -579,7 +554,6 @@ static int qcom_icc_bcm_voter_probe(struct platform_device *pdev)
 	voter->dev = &pdev->dev;
 	voter->np = np;
 	voter->init = true;
-	voter->has_amc = !of_property_read_bool(np, "qcom,no-amc");
 
 	if (of_property_read_u32(np, "qcom,tcs-wait", &voter->tcs_wait))
 		voter->tcs_wait = QCOM_ICC_TAG_ACTIVE_ONLY;
@@ -595,13 +569,8 @@ static int qcom_icc_bcm_voter_probe(struct platform_device *pdev)
 			return -ENOMEM;
 
 		crm->dev = crm_get_device(crm_name);
-		if (IS_ERR(crm->dev)) {
-			if (PTR_ERR(crm->dev) == -ENODEV) {
-				dev_err(&pdev->dev, "crm_name=%s unavailable\n", crm_name);
-				return -EPROBE_DEFER;
-			}
+		if (IS_ERR(crm->dev))
 			return PTR_ERR(crm->dev);
-		}
 
 		crm->client_type = CRM_HW_DRV;
 
