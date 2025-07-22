@@ -12008,12 +12008,15 @@ redo:
 		 * still unbalanced. ld_moved simply stays zero, so it is
 		 * correctly treated as an imbalance.
 		 */
-		env.loop_max  = min(sysctl_sched_nr_migrate, busiest->nr_running);
-
 more_balance:
 		rq_lock_irqsave(busiest, &rf);
 		env.src_rq_rf = &rf;
 		update_rq_clock(busiest);
+
+		if (!env.loop_max)
+			env.loop_max  = min(sysctl_sched_nr_migrate, busiest->cfs.h_nr_queued);
+		else
+			env.loop_max  = min(env.loop_max, busiest->cfs.h_nr_queued);
 
 		/*
 		 * cur_ld_moved - load moved in current iteration
