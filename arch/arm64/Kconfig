@@ -2369,6 +2369,20 @@ config WAFFLE_DTB
 	help
 	  Only include Oplus waffle device specific device tree.
 
+config GIULIA_DTB
+        select OPLUS_DEVICE_DTBS
+        default n
+        bool "Oplus giulia device DTB"
+        help
+          Only include Oplus giulia device specific device tree.
+
+config GIULIAC_DTB
+        select OPLUS_DEVICE_DTBS
+        default n
+        bool "Oplus giuliac device DTB"
+        help
+          Only include Oplus giuliac device specific device tree.
+
 endmenu
 
 menu "Power management options"
