@@ -6676,7 +6676,8 @@ static void shrink_node(pg_data_t *pgdat, struct scan_control *sc)
 	if (lru_gen_enabled() && global_reclaim(sc)) {
 		lru_gen_shrink_node(pgdat, sc);
 		if (sc->priority < DEF_PRIORITY / 2)
-			simple_lmk_reclaim_needed();
+			simple_lmk_reclaim_needed(sc->order,
+						  !current_is_kswapd());
 		return;
 	}
 
@@ -6704,7 +6705,7 @@ again:
 			   sc->nr_reclaimed - nr_reclaimed, sc->order);
 
 	if (sc->priority < DEF_PRIORITY / 2)
-		simple_lmk_reclaim_needed();
+		simple_lmk_reclaim_needed(sc->order, !current_is_kswapd());
 
 	if (sc->nr_reclaimed - nr_reclaimed)
 		reclaimable = true;
