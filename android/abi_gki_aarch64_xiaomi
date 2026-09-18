@@ -755,3 +755,7 @@ __traceiter_alarmtimer_fired
 __tracepoint_alarmtimer_fired
 udp4_lib_lookup
 udp6_lib_lookup
+
+#required by mi_io_stat.ko
+__traceiter_android_rvh_exit_read_taskinfo
+__tracepoint_android_rvh_exit_read_taskinfo

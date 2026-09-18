@@ -1162,24 +1162,32 @@ int fuse_handle_backing(struct fuse_entry_bpf *feb, struct inode **backing_inode
 		/* backing inode/path are added in fuse_lookup_backing */
 		break;
 
-	case FUSE_ACTION_REMOVE:
-		iput(*backing_inode);
-		*backing_inode = NULL;
+	case FUSE_ACTION_REMOVE: {
+		struct inode *old_inode = NULL;
+
+		if (backing_inode)
+			old_inode = xchg(backing_inode, NULL);
+		iput(old_inode);
 		path_put_init(backing_path);
 		break;
+	}
 
 	case FUSE_ACTION_REPLACE: {
 		struct file *backing_file = feb->backing_file;
+		struct inode *new_inode;
+		struct inode *old_inode = NULL;
 
 		if (!backing_file)
 			return -EINVAL;
 		if (IS_ERR(backing_file))
 			return PTR_ERR(backing_file);
 
-		if (backing_inode)
-			iput(*backing_inode);
-		*backing_inode = backing_file->f_inode;
-		ihold(*backing_inode);
+		new_inode = backing_file->f_inode;
+		if (backing_inode) {
+			ihold(new_inode);
+			old_inode = xchg(backing_inode, new_inode);
+			iput(old_inode);
+		}
 
 		path_put(backing_path);
 		*backing_path = backing_file->f_path;
@@ -1965,13 +1973,16 @@ void *fuse_getattr_finalize(struct fuse_bpf_args *fa,
 	struct fuse_attr_out *outarg = fa->out_args[0].value;
 	struct inode *inode = entry->d_inode;
 	u64 attr_version = fuse_get_attr_version(get_fuse_mount(inode)->fc);
-	int err = 0;
 
-	/* TODO: Ensure this doesn't happen if we had an error getting attrs in
-	 * backing.
+	/*
+	 * If backing getattr returned an error (such as a transient -ENOENT or
+	 * -ESTALE), do not pass uninitialized/zeroed attributes to finalize_attr,
+	 * as fuse_invalid_attr() will permanently mark the inode bad (FUSE_I_BAD).
 	 */
-	err = finalize_attr(inode, outarg, attr_version, stat);
-	return ERR_PTR(err);
+	if (fa->error_in)
+		return ERR_PTR(fa->error_in);
+
+	return ERR_PTR(finalize_attr(inode, outarg, attr_version, stat));
 }
 
 static void fattr_to_iattr(struct fuse_conn *fc,
