@@ -5787,7 +5787,7 @@ static void put_prev_entity(struct cfs_rq *cfs_rq, struct sched_entity *prev)
 }
 
 static void
-entity_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr, int queued)
+entity_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr, int hrtick)
 {
 	/*
 	 * Update run-time statistics of the 'current'.
@@ -5802,10 +5802,10 @@ entity_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr, int queued)
 
 #ifdef CONFIG_SCHED_HRTICK
 	/*
-	 * queued ticks are scheduled to match the slice, so don't bother
+	 * hrticks are scheduled to match the slice, so don't bother
 	 * validating it and just reschedule.
 	 */
-	if (queued) {
+	if (hrtick) {
 		bool skip_preempt = false;
 
 		trace_android_vh_resched_curr_lazy(rq_of(cfs_rq), &skip_preempt);
@@ -13483,7 +13483,7 @@ static inline void task_tick_core(struct rq *rq, struct task_struct *curr) {}
  * and everything must be accessed through the @rq and @curr passed in
  * parameters.
  */
-static void task_tick_fair(struct rq *rq, struct task_struct *curr, int queued)
+static void task_tick_fair(struct rq *rq, struct task_struct *curr, int hrtick)
 {
 
 	struct sched_entity *se = &curr->se;
@@ -13494,7 +13494,7 @@ static void task_tick_fair(struct rq *rq, struct task_struct *curr, int queued)
 
 		for_each_sched_entity(se) {
 			cfs_rq = cfs_rq_of(se);
-			entity_tick(cfs_rq, se, queued);
+			entity_tick(cfs_rq, se, hrtick);
 
 			weight = __calc_prop_weight(cfs_rq, se, weight);
 		}
@@ -13505,7 +13505,7 @@ static void task_tick_fair(struct rq *rq, struct task_struct *curr, int queued)
 
 	util_est_update_running(&rq->cfs, curr);
 
-	if (queued)
+	if (hrtick)
 		return;
 
 	if (static_branch_unlikely(&sched_numa_balancing))
