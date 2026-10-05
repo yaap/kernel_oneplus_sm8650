@@ -621,6 +621,7 @@ static void ppp_start(struct net_device *dev)
 		struct proto *proto = &ppp->protos[i];
 
 		proto->dev = dev;
+		timer_setup(&proto->timer, ppp_timer, 0);
 		proto->state = CLOSED;
 	}
 	ppp->protos[IDX_LCP].pid = PID_LCP;
@@ -640,15 +641,6 @@ static void ppp_close(struct net_device *dev)
 	ppp_tx_flush();
 }
 
-static void ppp_timer_release(struct net_device *dev)
-{
-	struct ppp *ppp = get_ppp(dev);
-	int i;
-
-	for (i = 0; i < IDX_COUNT; i++)
-		timer_shutdown_sync(&ppp->protos[i].timer);
-}
-
 static struct hdlc_proto proto = {
 	.start		= ppp_start,
 	.stop		= ppp_stop,
@@ -657,7 +649,6 @@ static struct hdlc_proto proto = {
 	.ioctl		= ppp_ioctl,
 	.netif_rx	= ppp_rx,
 	.module		= THIS_MODULE,
-	.detach		= ppp_timer_release,
 };
 
 static const struct header_ops ppp_header_ops = {
@@ -668,7 +659,7 @@ static int ppp_ioctl(struct net_device *dev, struct if_settings *ifs)
 {
 	hdlc_device *hdlc = dev_to_hdlc(dev);
 	struct ppp *ppp;
-	int i, result;
+	int result;
 
 	switch (ifs->type) {
 	case IF_GET_PROTO:
@@ -696,8 +687,6 @@ static int ppp_ioctl(struct net_device *dev, struct if_settings *ifs)
 			return result;
 
 		ppp = get_ppp(dev);
-		for (i = 0; i < IDX_COUNT; i++)
-			timer_setup(&ppp->protos[i].timer, ppp_timer, 0);
 		spin_lock_init(&ppp->lock);
 		ppp->req_timeout = 2;
 		ppp->cr_retries = 10;
