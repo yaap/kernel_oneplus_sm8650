@@ -705,7 +705,11 @@ int tmc_read_unprepare_etb(struct tmc_drvdata *drvdata)
 		 * can't be NULL.
 		 */
 		memset(drvdata->buf, 0, drvdata->size);
-		 __tmc_etb_enable_hw(drvdata);
+		/*
+		 * Ignore failures to enable the TMC to make sure, we don't
+		 * leave the TMC in a "reading" state.
+		 */
+		__tmc_etb_enable_hw(drvdata);
 	} else {
 		/*
 		 * The ETB/ETF is not tracing and the buffer was just read.
