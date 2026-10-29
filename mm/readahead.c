@@ -333,7 +333,7 @@ static void do_page_cache_ra(struct readahead_control *ractl,
 		for (i = 0; i < nr_to_read; i++) {
 			struct folio *folio = filemap_get_folio(mapping, index + i);
 
-			if (!IS_ERR_OR_NULL(folio)) {
+			if (!IS_ERR(folio)) {
 				set_bit(PG_oem_reserved_5, folio_flags(folio, 0));
 				folio_put(folio);
 			}
