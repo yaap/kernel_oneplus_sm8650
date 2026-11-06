@@ -1030,6 +1030,9 @@ randomize:
 	sock.socket->sk->sk_allocation = GFP_NOIO;
 	msock.socket->sk->sk_allocation = GFP_NOIO;
 
+	sock.socket->sk->sk_use_task_frag = false;
+	msock.socket->sk->sk_use_task_frag = false;
+
 	sock.socket->sk->sk_priority = TC_PRIO_INTERACTIVE_BULK;
 	msock.socket->sk->sk_priority = TC_PRIO_INTERACTIVE;
 
@@ -1974,6 +1977,11 @@ static int recv_dless_read(struct drbd_peer_device *peer_device, struct drbd_req
 		if (err)
 			return err;
 		data_size -= digest_size;
+	}
+
+	if (data_size < 0) {
+		drbd_err(peer_device, "Invalid data reply size\n");
+		return -EIO;
 	}
 
 	/* optimistically update recv_cnt.  if receiving fails below,

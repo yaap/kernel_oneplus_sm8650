@@ -32,9 +32,6 @@
 #define HCI_MAX_FRAME_SIZE	(HCI_MAX_ACL_SIZE + 4)
 
 #define HCI_LINK_KEY_SIZE	16
-#define HCI_AMP_LINK_KEY_SIZE	(2 * HCI_LINK_KEY_SIZE)
-
-#define HCI_MAX_AMP_ASSOC_SIZE	672
 
 #define HCI_MAX_CPB_DATA_SIZE	252
 
@@ -69,26 +66,6 @@
 #define HCI_I2C		8
 #define HCI_SMD		9
 #define HCI_VIRTIO	10
-
-/* HCI controller types */
-#define HCI_PRIMARY	0x00
-#define HCI_AMP		0x01
-
-/* First BR/EDR Controller shall have ID = 0 */
-#define AMP_ID_BREDR	0x00
-
-/* AMP controller types */
-#define AMP_TYPE_BREDR	0x00
-#define AMP_TYPE_80211	0x01
-
-/* AMP controller status */
-#define AMP_STATUS_POWERED_DOWN			0x00
-#define AMP_STATUS_BLUETOOTH_ONLY		0x01
-#define AMP_STATUS_NO_CAPACITY			0x02
-#define AMP_STATUS_LOW_CAPACITY			0x03
-#define AMP_STATUS_MEDIUM_CAPACITY		0x04
-#define AMP_STATUS_HIGH_CAPACITY		0x05
-#define AMP_STATUS_FULL_CAPACITY		0x06
 
 /* HCI device quirks */
 enum {
@@ -227,6 +204,13 @@ enum {
 	 * This quirk must be set before hci_register_dev is called.
 	 */
 	HCI_QUIRK_WIDEBAND_SPEECH_SUPPORTED,
+
+	/* When this quirk is set consider Sync Flow Control as supported by
+	 * the driver.
+	 *
+	 * This quirk must be set before hci_register_dev is called.
+	 */
+	HCI_QUIRK_SYNC_FLOWCTL_SUPPORTED,
 
 	/* When this quirk is set, the controller has validated that
 	 * LE states reported through the HCI_LE_READ_SUPPORTED_STATES are
@@ -396,6 +380,7 @@ enum {
 	HCI_WIDEBAND_SPEECH_ENABLED,
 	HCI_EVENT_FILTER_CONFIGURED,
 	HCI_PA_SYNC,
+	HCI_SCO_FLOWCTL,
 
 	HCI_DUT_MODE,
 	HCI_VENDOR_DIAG,
@@ -498,7 +483,6 @@ enum {
 #define ESCO_LINK	0x02
 /* Low Energy links do not have defined link type. Use invented one */
 #define LE_LINK		0x80
-#define AMP_LINK	0x81
 #define ISO_LINK	0x82
 #define INVALID_LINK	0xff
 
@@ -639,6 +623,7 @@ enum {
 #define HCI_ERROR_PIN_OR_KEY_MISSING	0x06
 #define HCI_ERROR_MEMORY_EXCEEDED	0x07
 #define HCI_ERROR_CONNECTION_TIMEOUT	0x08
+#define HCI_ERROR_COMMAND_DISALLOWED	0x0c
 #define HCI_ERROR_REJ_LIMITED_RESOURCES	0x0d
 #define HCI_ERROR_REJ_BAD_ADDR		0x0f
 #define HCI_ERROR_INVALID_PARAMETERS	0x12
@@ -647,6 +632,7 @@ enum {
 #define HCI_ERROR_REMOTE_POWER_OFF	0x15
 #define HCI_ERROR_LOCAL_HOST_TERM	0x16
 #define HCI_ERROR_PAIRING_NOT_ALLOWED	0x18
+#define HCI_ERROR_UNSUPPORTED_REMOTE_FEATURE	0x1a
 #define HCI_ERROR_INVALID_LL_PARAMS	0x1e
 #define HCI_ERROR_UNSPECIFIED		0x1f
 #define HCI_ERROR_ADVERTISING_TIMEOUT	0x3c
@@ -907,56 +893,6 @@ struct hci_cp_remote_oob_data_neg_reply {
 struct hci_cp_io_capability_neg_reply {
 	bdaddr_t bdaddr;
 	__u8     reason;
-} __packed;
-
-#define HCI_OP_CREATE_PHY_LINK		0x0435
-struct hci_cp_create_phy_link {
-	__u8     phy_handle;
-	__u8     key_len;
-	__u8     key_type;
-	__u8     key[HCI_AMP_LINK_KEY_SIZE];
-} __packed;
-
-#define HCI_OP_ACCEPT_PHY_LINK		0x0436
-struct hci_cp_accept_phy_link {
-	__u8     phy_handle;
-	__u8     key_len;
-	__u8     key_type;
-	__u8     key[HCI_AMP_LINK_KEY_SIZE];
-} __packed;
-
-#define HCI_OP_DISCONN_PHY_LINK		0x0437
-struct hci_cp_disconn_phy_link {
-	__u8     phy_handle;
-	__u8     reason;
-} __packed;
-
-struct ext_flow_spec {
-	__u8       id;
-	__u8       stype;
-	__le16     msdu;
-	__le32     sdu_itime;
-	__le32     acc_lat;
-	__le32     flush_to;
-} __packed;
-
-#define HCI_OP_CREATE_LOGICAL_LINK	0x0438
-#define HCI_OP_ACCEPT_LOGICAL_LINK	0x0439
-struct hci_cp_create_accept_logical_link {
-	__u8                  phy_handle;
-	struct ext_flow_spec  tx_flow_spec;
-	struct ext_flow_spec  rx_flow_spec;
-} __packed;
-
-#define HCI_OP_DISCONN_LOGICAL_LINK	0x043a
-struct hci_cp_disconn_logical_link {
-	__le16   log_handle;
-} __packed;
-
-#define HCI_OP_LOGICAL_LINK_CANCEL	0x043b
-struct hci_cp_logical_link_cancel {
-	__u8     phy_handle;
-	__u8     flow_spec_id;
 } __packed;
 
 #define HCI_OP_ENHANCED_SETUP_SYNC_CONN		0x043d
@@ -1538,6 +1474,11 @@ struct hci_rp_read_tx_power {
 	__s8     tx_power;
 } __packed;
 
+#define HCI_OP_WRITE_SYNC_FLOWCTL	0x0c2f
+struct hci_cp_write_sync_flowctl {
+	__u8     enable;
+} __packed;
+
 #define HCI_OP_READ_PAGE_SCAN_TYPE	0x0c46
 struct hci_rp_read_page_scan_type {
 	__u8     status;
@@ -1580,46 +1521,6 @@ struct hci_rp_read_enc_key_size {
 	__u8     key_size;
 } __packed;
 
-#define HCI_OP_READ_LOCAL_AMP_INFO	0x1409
-struct hci_rp_read_local_amp_info {
-	__u8     status;
-	__u8     amp_status;
-	__le32   total_bw;
-	__le32   max_bw;
-	__le32   min_latency;
-	__le32   max_pdu;
-	__u8     amp_type;
-	__le16   pal_cap;
-	__le16   max_assoc_size;
-	__le32   max_flush_to;
-	__le32   be_flush_to;
-} __packed;
-
-#define HCI_OP_READ_LOCAL_AMP_ASSOC	0x140a
-struct hci_cp_read_local_amp_assoc {
-	__u8     phy_handle;
-	__le16   len_so_far;
-	__le16   max_len;
-} __packed;
-struct hci_rp_read_local_amp_assoc {
-	__u8     status;
-	__u8     phy_handle;
-	__le16   rem_len;
-	__u8     frag[];
-} __packed;
-
-#define HCI_OP_WRITE_REMOTE_AMP_ASSOC	0x140b
-struct hci_cp_write_remote_amp_assoc {
-	__u8     phy_handle;
-	__le16   len_so_far;
-	__le16   rem_len;
-	__u8     frag[];
-} __packed;
-struct hci_rp_write_remote_amp_assoc {
-	__u8     status;
-	__u8     phy_handle;
-} __packed;
-
 #define HCI_OP_GET_MWS_TRANSPORT_CONFIG	0x140c
 
 #define HCI_OP_ENABLE_DUT_MODE		0x1803
@@ -1630,6 +1531,15 @@ struct hci_rp_write_remote_amp_assoc {
 struct hci_cp_le_set_event_mask {
 	__u8     mask[8];
 } __packed;
+
+/* BLUETOOTH CORE SPECIFICATION Version 5.4 | Vol 4, Part E
+ * 7.8.2 LE Read Buffer Size command
+ * MAX_LE_MTU is 0xffff.
+ * 0 is also valid. It means that no dedicated LE Buffer exists.
+ * It should use the HCI_Read_Buffer_Size command and mtu is shared
+ * between BR/EDR and LE.
+ */
+#define HCI_MIN_LE_MTU 0x001b
 
 #define HCI_OP_LE_READ_BUFFER_SIZE	0x2002
 struct hci_rp_le_read_buffer_size {
@@ -2968,8 +2878,9 @@ static inline struct hci_sco_hdr *hci_sco_hdr(const struct sk_buff *skb)
 #define hci_iso_flags_pack(pb, ts)	((pb & 0x03) | ((ts & 0x01) << 2))
 
 /* ISO data length and flags pack/unpack */
-#define hci_iso_data_len_pack(h, f)	((__u16) ((h) | ((f) << 14)))
-#define hci_iso_data_len(h)		((h) & 0x3fff)
+#define hci_iso_data_len_pack(h, f)	((__u16) (((h) & 0x0fff) | \
+						  (((f) & 0x3) << 14)))
+#define hci_iso_data_len(h)		((h) & 0x0fff)
 #define hci_iso_data_flags(h)		((h) >> 14)
 
 /* codec transport types */

@@ -1191,7 +1191,7 @@ static int ra_data_block(struct inode *inode, pgoff_t index)
 		.in_list = 0,
 		.retry = 0,
 	};
-	int err;
+	int err = 0;
 
 	f2fs_down_read(&F2FS_I(inode)->i_sem);
 	if (f2fs_is_cow_file(inode)) {
@@ -1257,6 +1257,9 @@ got_it:
 		err = -ENOMEM;
 		goto put_page;
 	}
+
+	if (PageUptodate(fio.encrypted_page))
+		goto put_encrypted_page;
 
 	err = f2fs_submit_page_bio(&fio);
 	if (err)
@@ -1611,6 +1614,16 @@ next_step:
 
 			if (is_bad_inode(inode) ||
 					special_file(inode->i_mode)) {
+				iput(inode);
+				continue;
+			}
+
+			if (f2fs_has_inline_data(inode)) {
+				set_sbi_flag(sbi, SBI_NEED_FSCK);
+				f2fs_err(sbi,
+					"inode %lx has both inline_data flag and "
+					"data block, nid=%u, ofs_in_node=%u",
+					inode->i_ino, dni.nid, ofs_in_node);
 				iput(inode);
 				continue;
 			}

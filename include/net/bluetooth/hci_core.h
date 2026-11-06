@@ -36,6 +36,7 @@
 #include <net/bluetooth/hci.h>
 #include <net/bluetooth/hci_sync.h>
 #include <net/bluetooth/hci_sock.h>
+#include <net/bluetooth/coredump.h>
 
 /* HCI priority */
 #define HCI_PRIO_MAX	7
@@ -64,7 +65,7 @@ struct inquiry_entry {
 		NAME_PENDING,
 		NAME_KNOWN,
 	} name_state;
-	__u32			timestamp;
+	unsigned long		timestamp;
 	struct inquiry_data	data;
 };
 
@@ -80,7 +81,7 @@ struct discovery_state {
 	struct list_head	all;	/* All devices found during inquiry */
 	struct list_head	unknown;	/* Name state not known */
 	struct list_head	resolve;	/* Name needs to be resolved */
-	__u32			timestamp;
+	unsigned long		timestamp;
 	bdaddr_t		last_adv_addr;
 	u8			last_adv_addr_type;
 	s8			last_adv_rssi;
@@ -96,6 +97,7 @@ struct discovery_state {
 	unsigned long		scan_start;
 	unsigned long		scan_duration;
 	unsigned long		name_resolve_timeout;
+	spinlock_t		lock;
 };
 
 #define SUSPEND_NOTIFIER_TIMEOUT	msecs_to_jiffies(2000) /* 2 seconds */
@@ -128,7 +130,6 @@ enum suspended_state {
 struct hci_conn_hash {
 	struct list_head list;
 	unsigned int     acl_num;
-	unsigned int     amp_num;
 	unsigned int     sco_num;
 	unsigned int     iso_num;
 	unsigned int     le_num;
@@ -244,6 +245,7 @@ struct adv_info {
 	bool	periodic;
 	__u8	mesh;
 	__u8	instance;
+	__u8	handle;
 	__u32	flags;
 	__u16	timeout;
 	__u16	remaining_time;
@@ -323,8 +325,8 @@ struct adv_monitor {
 
 #define HCI_MAX_SHORT_NAME_LENGTH	10
 
-#define HCI_CONN_HANDLE_UNSET		0xffff
 #define HCI_CONN_HANDLE_MAX		0x0eff
+#define HCI_CONN_HANDLE_UNSET(_handle)	(_handle > HCI_CONN_HANDLE_MAX)
 
 /* Min encryption key size to match with SMP */
 #define HCI_MIN_ENC_KEY_SIZE		7
@@ -338,14 +340,6 @@ struct adv_monitor {
 /* Default authenticated payload timeout 30s */
 #define DEFAULT_AUTH_PAYLOAD_TIMEOUT   0x0bb8
 
-struct amp_assoc {
-	__u16	len;
-	__u16	offset;
-	__u16	rem_len;
-	__u16	len_so_far;
-	__u8	data[HCI_MAX_AMP_ASSOC_SIZE];
-};
-
 #define HCI_MAX_PAGES	3
 
 struct hci_dev {
@@ -356,7 +350,6 @@ struct hci_dev {
 	unsigned long	flags;
 	__u16		id;
 	__u8		bus;
-	__u8		dev_type;
 	bdaddr_t	bdaddr;
 	bdaddr_t	setup_addr;
 	bdaddr_t	public_addr;
@@ -462,21 +455,6 @@ struct hci_dev {
 	__u16		sniff_min_interval;
 	__u16		sniff_max_interval;
 
-	__u8		amp_status;
-	__u32		amp_total_bw;
-	__u32		amp_max_bw;
-	__u32		amp_min_latency;
-	__u32		amp_max_pdu;
-	__u8		amp_type;
-	__u16		amp_pal_cap;
-	__u16		amp_assoc_size;
-	__u32		amp_max_flush_to;
-	__u32		amp_be_flush_to;
-
-	struct amp_assoc	loc_assoc;
-
-	__u8		flow_ctl_mode;
-
 	unsigned int	auto_accept_delay;
 
 	unsigned long	quirks;
@@ -495,11 +473,6 @@ struct hci_dev {
 	unsigned int	sco_pkts;
 	unsigned int	le_pkts;
 	unsigned int	iso_pkts;
-
-	__u16		block_len;
-	__u16		block_mtu;
-	__u16		num_blocks;
-	__u16		block_cnt;
 
 	unsigned long	acl_last_tx;
 	unsigned long	sco_last_tx;
@@ -571,6 +544,7 @@ struct hci_dev {
 	struct hci_conn_hash	conn_hash;
 
 	struct list_head	mesh_pending;
+	struct mutex		mgmt_pending_lock;
 	struct list_head	mgmt_pending;
 	struct list_head	reject_list;
 	struct list_head	accept_list;
@@ -594,6 +568,8 @@ struct hci_dev {
 	const char		*hw_info;
 	const char		*fw_info;
 	struct dentry		*debugfs;
+
+	struct hci_devcoredump	dump;
 
 	struct device		dev;
 
@@ -675,6 +651,9 @@ struct hci_dev {
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
 	ANDROID_KABI_RESERVE(4);
+
+	/* Kept after the KABI reserves to preserve the existing layout. */
+	struct ida		unset_handle_ida;
 };
 
 #define HCI_PHY_HANDLE(handle)	(handle & 0xff)
@@ -703,6 +682,7 @@ struct hci_conn {
 	__u16		handle;
 	__u16		sync_handle;
 	__u16		state;
+	__u16		mtu;
 	__u8		mode;
 	__u8		type;
 	__u8		role;
@@ -771,7 +751,6 @@ struct hci_conn {
 	void		*l2cap_data;
 	void		*sco_data;
 	void		*iso_data;
-	struct amp_mgr	*amp_mgr;
 
 	struct hci_conn	*link;
 	struct bt_codec codec;
@@ -899,6 +878,7 @@ static inline void iso_recv(struct hci_conn *hcon, struct sk_buff *skb,
 
 static inline void discovery_init(struct hci_dev *hdev)
 {
+	spin_lock_init(&hdev->discovery.lock);
 	hdev->discovery.state = DISCOVERY_STOPPED;
 	INIT_LIST_HEAD(&hdev->discovery.all);
 	INIT_LIST_HEAD(&hdev->discovery.unknown);
@@ -912,9 +892,12 @@ static inline void hci_discovery_filter_clear(struct hci_dev *hdev)
 	hdev->discovery.result_filtering = false;
 	hdev->discovery.report_invalid_rssi = true;
 	hdev->discovery.rssi = HCI_RSSI_INVALID;
+	spin_lock(&hdev->discovery.lock);
 	hdev->discovery.uuid_count = 0;
 	kfree(hdev->discovery.uuids);
 	hdev->discovery.uuids = NULL;
+	spin_unlock(&hdev->discovery.lock);
+
 	hdev->discovery.scan_start = 0;
 	hdev->discovery.scan_duration = 0;
 }
@@ -1002,9 +985,6 @@ static inline void hci_conn_hash_add(struct hci_dev *hdev, struct hci_conn *c)
 	case ACL_LINK:
 		h->acl_num++;
 		break;
-	case AMP_LINK:
-		h->amp_num++;
-		break;
 	case LE_LINK:
 		h->le_num++;
 		if (c->role == HCI_ROLE_SLAVE)
@@ -1031,9 +1011,6 @@ static inline void hci_conn_hash_del(struct hci_dev *hdev, struct hci_conn *c)
 	case ACL_LINK:
 		h->acl_num--;
 		break;
-	case AMP_LINK:
-		h->amp_num--;
-		break;
 	case LE_LINK:
 		h->le_num--;
 		if (c->role == HCI_ROLE_SLAVE)
@@ -1055,8 +1032,6 @@ static inline unsigned int hci_conn_num(struct hci_dev *hdev, __u8 type)
 	switch (type) {
 	case ACL_LINK:
 		return h->acl_num;
-	case AMP_LINK:
-		return h->amp_num;
 	case LE_LINK:
 		return h->le_num;
 	case SCO_LINK:
@@ -1073,7 +1048,7 @@ static inline unsigned int hci_conn_count(struct hci_dev *hdev)
 {
 	struct hci_conn_hash *c = &hdev->conn_hash;
 
-	return c->acl_num + c->amp_num + c->sco_num + c->le_num + c->iso_num;
+	return c->acl_num + c->sco_num + c->le_num + c->iso_num;
 }
 
 static inline bool hci_conn_valid(struct hci_dev *hdev, struct hci_conn *conn)
@@ -1223,7 +1198,9 @@ static inline struct hci_conn *hci_conn_hash_lookup_le(struct hci_dev *hdev,
 
 static inline struct hci_conn *hci_conn_hash_lookup_cis(struct hci_dev *hdev,
 							bdaddr_t *ba,
-							__u8 ba_type)
+							__u8 ba_type,
+							__u8 cig,
+							__u8 id)
 {
 	struct hci_conn_hash *h = &hdev->conn_hash;
 	struct hci_conn  *c;
@@ -1234,7 +1211,16 @@ static inline struct hci_conn *hci_conn_hash_lookup_cis(struct hci_dev *hdev,
 		if (c->type != ISO_LINK)
 			continue;
 
-		if (ba_type == c->dst_type && !bacmp(&c->dst, ba)) {
+		/* Match CIG ID if set */
+		if (cig != c->iso_qos.cig)
+			continue;
+
+		/* Match CIS ID if set */
+		if (id != c->iso_qos.cis)
+			continue;
+
+		/* Match destination address if set */
+		if (!ba || (ba_type == c->dst_type && !bacmp(&c->dst, ba))) {
 			rcu_read_unlock();
 			return c;
 		}
@@ -1359,7 +1345,9 @@ bool hci_iso_setup_path(struct hci_conn *conn);
 int hci_le_create_cis(struct hci_conn *conn);
 
 struct hci_conn *hci_conn_add(struct hci_dev *hdev, int type, bdaddr_t *dst,
-			      u8 role);
+			      u8 role, u16 handle);
+struct hci_conn *hci_conn_add_unset(struct hci_dev *hdev, int type,
+				    bdaddr_t *dst, u8 role);
 int hci_conn_del(struct hci_conn *conn);
 void hci_conn_hash_flush(struct hci_dev *hdev);
 void hci_conn_check_pending(struct hci_dev *hdev);
@@ -1462,10 +1450,6 @@ static inline void hci_conn_drop(struct hci_conn *conn)
 			}
 			break;
 
-		case AMP_LINK:
-			timeo = conn->disc_timeout;
-			break;
-
 		default:
 			timeo = 0;
 			break;
@@ -1551,6 +1535,15 @@ static inline void hci_set_aosp_capable(struct hci_dev *hdev)
 {
 #if IS_ENABLED(CONFIG_BT_AOSPEXT)
 	hdev->aosp_capable = true;
+#endif
+}
+
+static inline void hci_devcd_setup(struct hci_dev *hdev)
+{
+#ifdef CONFIG_DEV_COREDUMP
+	INIT_WORK(&hdev->dump.dump_rx, hci_devcd_rx);
+	INIT_DELAYED_WORK(&hdev->dump.dump_timeout, hci_devcd_timeout);
+	skb_queue_head_init(&hdev->dump.dump_q);
 #endif
 }
 
@@ -1682,6 +1675,7 @@ void hci_conn_del_sysfs(struct hci_conn *conn);
 #define lmp_hold_capable(dev)      ((dev)->features[0][0] & LMP_HOLD)
 #define lmp_sniff_capable(dev)     ((dev)->features[0][0] & LMP_SNIFF)
 #define lmp_park_capable(dev)      ((dev)->features[0][1] & LMP_PARK)
+#define lmp_sco_capable(dev)       ((dev)->features[0][1] & LMP_SCO)
 #define lmp_inq_rssi_capable(dev)  ((dev)->features[0][3] & LMP_RSSI_INQ)
 #define lmp_esco_capable(dev)      ((dev)->features[0][3] & LMP_ESCO)
 #define lmp_bredr_capable(dev)     (!((dev)->features[0][4] & LMP_NO_BREDR))

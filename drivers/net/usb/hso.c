@@ -1322,8 +1322,7 @@ static void hso_serial_close(struct tty_struct *tty, struct file *filp)
 }
 
 /* close the requested serial port */
-static int hso_serial_write(struct tty_struct *tty, const unsigned char *buf,
-			    int count)
+static int hso_serial_write(struct tty_struct *tty, const u8 *buf, int count)
 {
 	struct hso_serial *serial = tty->driver_data;
 	int space, tx_bytes;
@@ -1556,10 +1555,10 @@ hso_wait_modem_status(struct hso_serial *serial, unsigned long arg)
 	spin_unlock_irq(&serial->serial_lock);
 	add_wait_queue(&tiocmget->waitq, &wait);
 	for (;;) {
+		set_current_state(TASK_INTERRUPTIBLE);
 		spin_lock_irq(&serial->serial_lock);
 		memcpy(&cnow, &tiocmget->icount, sizeof(struct uart_icount));
 		spin_unlock_irq(&serial->serial_lock);
-		set_current_state(TASK_INTERRUPTIBLE);
 		if (((arg & TIOCM_RNG) && (cnow.rng != cprev.rng)) ||
 		    ((arg & TIOCM_DSR) && (cnow.dsr != cprev.dsr)) ||
 		    ((arg & TIOCM_CD)  && (cnow.dcd != cprev.dcd))) {

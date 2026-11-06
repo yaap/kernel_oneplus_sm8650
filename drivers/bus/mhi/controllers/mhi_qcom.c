@@ -124,10 +124,9 @@ static const struct mhi_channel_config modem_qcom_sdx65_mhi_channels[] = {
 			      false, true, 0, 0),
 	MHI_CHANNEL_CONFIG_UL(20, "IPCR", 32, 2, MHI_EE_AMSS,
 			      MHI_DB_BRST_DISABLE, false, 0, false, false, 0),
-	/* auto-queue */
 	MHI_CHANNEL_CONFIG_DL(21, "IPCR", 32, 2, MHI_EE_AMSS,
 			      MHI_DB_BRST_DISABLE, false, 0, false, false,
-			      false, true, 0, 0),
+			      false, false, 0, 0),
 	MHI_CHANNEL_CONFIG_UL(26, "DCI", 64, 3, MHI_EE_AMSS,
 			      MHI_DB_BRST_DISABLE, false, 0, false, false, 0),
 	MHI_CHANNEL_CONFIG_DL(27, "DCI", 64, 3, MHI_EE_AMSS,

@@ -1900,6 +1900,15 @@ static int ufs_qcom_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 	if (!err && ufs_qcom_is_link_off(hba) && host->device_reset)
 		ufs_qcom_device_reset_ctrl(hba, true);
 
+	if (!err && ufs_qcom_is_link_off(hba) && host->device_reset) {
+		/*
+		 * Allow the device firmware to complete its reset routine
+		 * while the rails are still active, avoiding an OCP fault
+		 * when the regulator immediately enters LPM.
+		 */
+		usleep_range(10000, 11000);
+	}
+
 	ufs_qcom_log_str(host, "&,%d,%d,%d,%d,%d,%d\n",
 			pm_op, hba->rpm_lvl, hba->spm_lvl, hba->uic_link_state,
 			hba->curr_dev_pwr_mode, err);

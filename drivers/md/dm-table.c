@@ -1983,7 +1983,7 @@ static int device_requires_stable_pages(struct dm_target *ti,
 					struct dm_dev *dev, sector_t start,
 					sector_t len, void *data)
 {
-	return bdev_stable_writes(dev->bdev);
+	return ti->needs_stable_writes || bdev_stable_writes(dev->bdev);
 }
 
 int dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
@@ -2024,8 +2024,7 @@ int dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
 		blk_queue_flag_set(QUEUE_FLAG_DAX, q);
 		if (dm_table_supports_dax(t, device_not_dax_synchronous_capable))
 			set_dax_synchronous(t->md->dax_dev);
-	}
-	else
+	} else
 		blk_queue_flag_clear(QUEUE_FLAG_DAX, q);
 
 	if (dm_table_any_dev_attr(t, device_dax_write_cache_enabled, NULL))

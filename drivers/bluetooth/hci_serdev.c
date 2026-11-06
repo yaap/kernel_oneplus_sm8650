@@ -221,7 +221,7 @@ static int hci_uart_setup(struct hci_dev *hdev)
 	if (IS_ERR(skb)) {
 		bt_dev_err(hdev, "Reading local version info failed (%ld)",
 			   PTR_ERR(skb));
-		return 0;
+		return PTR_ERR(skb);
 	}
 
 	if (skb->len != sizeof(*ver))
@@ -364,11 +364,6 @@ int hci_uart_register_device(struct hci_uart *hu,
 
 	if (test_bit(HCI_UART_EXT_CONFIG, &hu->hdev_flags))
 		set_bit(HCI_QUIRK_EXTERNAL_CONFIG, &hdev->quirks);
-
-	if (test_bit(HCI_UART_CREATE_AMP, &hu->hdev_flags))
-		hdev->dev_type = HCI_AMP;
-	else
-		hdev->dev_type = HCI_PRIMARY;
 
 	if (test_bit(HCI_UART_INIT_PENDING, &hu->hdev_flags))
 		return 0;

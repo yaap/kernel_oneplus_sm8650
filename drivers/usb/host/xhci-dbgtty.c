@@ -233,9 +233,7 @@ static void dbc_tty_close(struct tty_struct *tty, struct file *file)
 	tty_port_close(&port->port, tty, file);
 }
 
-static int dbc_tty_write(struct tty_struct *tty,
-			 const unsigned char *buf,
-			 int count)
+static int dbc_tty_write(struct tty_struct *tty, const u8 *buf, int count)
 {
 	struct dbc_port		*port = tty->driver_data;
 	unsigned long		flags;
@@ -597,8 +595,8 @@ int dbc_tty_init(void)
 	dbc_tty_driver = tty_alloc_driver(64, TTY_DRIVER_REAL_RAW |
 					  TTY_DRIVER_DYNAMIC_DEV);
 	if (IS_ERR(dbc_tty_driver)) {
-		idr_destroy(&dbc_tty_minors);
-		return PTR_ERR(dbc_tty_driver);
+		ret = PTR_ERR(dbc_tty_driver);
+		goto fail;
 	}
 
 	dbc_tty_driver->driver_name = "dbc_serial";
@@ -618,9 +616,16 @@ int dbc_tty_init(void)
 	ret = tty_register_driver(dbc_tty_driver);
 	if (ret) {
 		pr_err("Can't register dbc tty driver\n");
-		tty_driver_kref_put(dbc_tty_driver);
-		idr_destroy(&dbc_tty_minors);
+		goto fail_put;
 	}
+
+	return ret;
+
+fail_put:
+	tty_driver_kref_put(dbc_tty_driver);
+fail:
+	idr_destroy(&dbc_tty_minors);
+	dbc_tty_driver = NULL;
 
 	return ret;
 }

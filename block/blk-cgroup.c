@@ -94,6 +94,8 @@ static void blkg_free_workfn(struct work_struct *work)
 		if (blkg->pd[i])
 			blkcg_policy[i]->pd_free_fn(blkg->pd[i]);
 
+	if (blkg->parent)
+		blkg_put(blkg->parent);
 	if (blkg->q)
 		blk_put_queue(blkg->q);
 	free_percpu(blkg->iostat_cpu);
@@ -128,8 +130,6 @@ static void __blkg_release(struct rcu_head *rcu)
 
 	/* release the blkcg and parent blkg refs this blkg has been holding */
 	css_put(&blkg->blkcg->css);
-	if (blkg->parent)
-		blkg_put(blkg->parent);
 	blkg_free(blkg);
 }
 
@@ -330,15 +330,15 @@ static struct blkcg_gq *blkg_create(struct blkcg *blkcg, struct gendisk *disk,
 			if (blkg->pd[i] && pol->pd_online_fn)
 				pol->pd_online_fn(blkg->pd[i]);
 		}
+		blkg->online = true;
 	}
-	blkg->online = true;
 	spin_unlock(&blkcg->lock);
 
 	if (!ret)
 		return blkg;
 
 	/* @blkg failed fully initialized, use the usual release path */
-	blkg_put(blkg);
+	percpu_ref_kill(&blkg->refcnt);
 	return ERR_PTR(ret);
 
 err_put_css:
@@ -649,6 +649,13 @@ struct block_device *blkcg_conf_open_bdev(char **inputp)
 		return ERR_PTR(-ENODEV);
 	}
 
+	mutex_lock(&bdev->bd_queue->rq_qos_mutex);
+	if (!disk_live(bdev->bd_disk)) {
+		mutex_unlock(&bdev->bd_queue->rq_qos_mutex);
+		blkdev_put_no_open(bdev);
+		return ERR_PTR(-ENODEV);
+	}
+
 	*inputp = input;
 	return bdev;
 }
@@ -772,6 +779,7 @@ fail_unlock:
 fail_exit_queue:
 	blk_queue_exit(q);
 fail:
+	mutex_unlock(&q->rq_qos_mutex);
 	blkdev_put_no_open(bdev);
 	/*
 	 * If queue was bypassing, we should retry.  Do so after a
@@ -796,9 +804,11 @@ EXPORT_SYMBOL_GPL(blkg_conf_prep);
  */
 void blkg_conf_finish(struct blkg_conf_ctx *ctx)
 	__releases(&ctx->bdev->bd_queue->queue_lock) __releases(rcu)
+	__releases(&ctx->bdev->bd_queue->rq_qos_mutex)
 {
 	spin_unlock_irq(&bdev_get_queue(ctx->bdev)->queue_lock);
 	rcu_read_unlock();
+	mutex_unlock(&ctx->bdev->bd_queue->rq_qos_mutex);
 	blkdev_put_no_open(ctx->bdev);
 }
 EXPORT_SYMBOL_GPL(blkg_conf_finish);
@@ -996,13 +1006,10 @@ static int blkcg_print_stat(struct seq_file *sf, void *v)
 	else
 		cgroup_rstat_flush(blkcg->css.cgroup);
 
-	rcu_read_lock();
-	hlist_for_each_entry_rcu(blkg, &blkcg->blkg_list, blkcg_node) {
-		spin_lock_irq(&blkg->q->queue_lock);
+	guard(spinlock_irq)(&blkcg->lock);
+	hlist_for_each_entry(blkg, &blkcg->blkg_list, blkcg_node)
 		blkcg_print_one_stat(blkg, sf);
-		spin_unlock_irq(&blkg->q->queue_lock);
-	}
-	rcu_read_unlock();
+
 	return 0;
 }
 
@@ -1293,7 +1300,9 @@ int blkcg_init_disk(struct gendisk *disk)
 	if (ret)
 		goto err_ioprio_exit;
 
+	mutex_lock(&q->rq_qos_mutex);
 	ret = blk_iolatency_init(disk);
+	mutex_unlock(&q->rq_qos_mutex);
 	if (ret)
 		goto err_throtl_exit;
 
@@ -1405,6 +1414,8 @@ retry:
 		struct blkg_policy_data *pd;
 
 		if (blkg->pd[pol->plid])
+			continue;
+		if (hlist_unhashed(&blkg->blkcg_node))
 			continue;
 
 		/* If prealloc matches, use it; otherwise try GFP_NOWAIT */
@@ -2009,7 +2020,7 @@ void blk_cgroup_bio_start(struct bio *bio)
 
 	u64_stats_update_end_irqrestore(&bis->sync, flags);
 	if (cgroup_subsys_on_dfl(io_cgrp_subsys))
-		cgroup_rstat_updated(bio->bi_blkg->blkcg->css.cgroup, cpu);
+		__cgroup_rstat_updated(bio->bi_blkg->blkcg->css.cgroup, cpu);
 	put_cpu();
 }
 

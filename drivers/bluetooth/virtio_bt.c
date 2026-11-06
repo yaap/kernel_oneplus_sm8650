@@ -112,9 +112,13 @@ static int virtbt_setup_zephyr(struct hci_dev *hdev)
 	if (IS_ERR(skb))
 		return PTR_ERR(skb);
 
-	bt_dev_info(hdev, "%s", (char *)(skb->data + 1));
+	/* Bounded print: the backend controls skb->len. */
+	if (skb->len > 1) {
+		int len = skb->len - 1;
 
-	hci_set_fw_info(hdev, "%s", skb->data + 1);
+		bt_dev_info(hdev, "%.*s", len, (char *)(skb->data + 1));
+		hci_set_fw_info(hdev, "%.*s", len, skb->data + 1);
+	}
 
 	kfree_skb(skb);
 	return 0;
@@ -291,7 +295,6 @@ static int virtbt_probe(struct virtio_device *vdev)
 
 	switch (type) {
 	case VIRTIO_BT_CONFIG_TYPE_PRIMARY:
-	case VIRTIO_BT_CONFIG_TYPE_AMP:
 		break;
 	default:
 		return -EINVAL;
@@ -320,7 +323,6 @@ static int virtbt_probe(struct virtio_device *vdev)
 	vbt->hdev = hdev;
 
 	hdev->bus = HCI_VIRTIO;
-	hdev->dev_type = type;
 	hci_set_drvdata(hdev, vbt);
 
 	hdev->open  = virtbt_open;

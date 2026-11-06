@@ -365,12 +365,16 @@ EXPORT_SYMBOL_GPL(spi_get_device_id);
 const void *spi_get_device_match_data(const struct spi_device *sdev)
 {
 	const void *match;
+	const struct spi_device_id *id;
 
 	match = device_get_match_data(&sdev->dev);
 	if (match)
 		return match;
 
-	return (const void *)spi_get_device_id(sdev)->driver_data;
+	id = spi_get_device_id(sdev);
+	if (!id)
+		return NULL;
+	return (const void *)id->driver_data;
 }
 EXPORT_SYMBOL_GPL(spi_get_device_match_data);
 
@@ -2799,6 +2803,17 @@ int spi_slave_abort(struct spi_device *spi)
 }
 EXPORT_SYMBOL_GPL(spi_slave_abort);
 
+int spi_target_abort(struct spi_device *spi)
+{
+	struct spi_controller *ctlr = spi->controller;
+
+	if (spi_controller_is_target(ctlr) && ctlr->target_abort)
+		return ctlr->target_abort(ctlr);
+
+	return -ENOTSUPP;
+}
+EXPORT_SYMBOL_GPL(spi_target_abort);
+
 static ssize_t slave_show(struct device *dev, struct device_attribute *attr,
 			  char *buf)
 {
@@ -3358,6 +3373,9 @@ static inline void __spi_mark_resumed(struct spi_controller *ctlr)
 int spi_controller_suspend(struct spi_controller *ctlr)
 {
 	int ret = 0;
+
+	if (ctlr->cur_msg && spi_controller_is_target(ctlr) && ctlr->target_abort)
+		ctlr->target_abort(ctlr);
 
 	/* Basically no-ops for non-queued controllers */
 	if (ctlr->queued) {

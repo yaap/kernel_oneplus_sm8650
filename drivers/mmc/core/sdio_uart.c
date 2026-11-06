@@ -104,6 +104,9 @@ static int sdio_uart_add_port(struct sdio_uart_port *port)
 	}
 	spin_unlock(&sdio_uart_table_lock);
 
+	if (ret)
+		kfifo_free(&port->xmit_fifo);
+
 	return ret;
 }
 
@@ -761,8 +764,7 @@ static void sdio_uart_hangup(struct tty_struct *tty)
 	tty_port_hangup(&port->port);
 }
 
-static int sdio_uart_write(struct tty_struct *tty, const unsigned char *buf,
-			   int count)
+static int sdio_uart_write(struct tty_struct *tty, const u8 *buf, int count)
 {
 	struct sdio_uart_port *port = tty->driver_data;
 	int ret;

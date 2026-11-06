@@ -426,9 +426,7 @@ drop:
 
 static void mptcp_stop_rtx_timer(struct sock *sk)
 {
-	struct inet_connection_sock *icsk = inet_csk(sk);
-
-	sk_stop_timer(sk, &icsk->icsk_retransmit_timer);
+	sk_stop_timer(sk, &sk->mptcp_retransmit_timer);
 	mptcp_sk(sk)->timer_ival = 0;
 }
 
@@ -754,13 +752,13 @@ static bool __mptcp_move_skbs_from_subflow(struct mptcp_sock *msk,
 				mptcp_dss_corruption(msk, ssk);
 			}
 		} else {
+			sk_eat_skb(ssk, skb);
+			done = true;
+
 			if (unlikely(!fin)) {
 				DEBUG_NET_WARN_ON_ONCE(1);
 				mptcp_dss_corruption(msk, ssk);
 			}
-
-			sk_eat_skb(ssk, skb);
-			done = true;
 		}
 
 		WRITE_ONCE(tp->copied_seq, seq);
@@ -932,13 +930,6 @@ static bool __mptcp_finish_join(struct mptcp_sock *msk, struct sock *ssk)
 	if (sk->sk_state != TCP_ESTABLISHED)
 		return false;
 
-	/* The caller possibly is not holding the msk socket lock, but
-	 * in the fallback case only the current subflow is touching
-	 * the OoO queue.
-	 */
-	if (!RB_EMPTY_ROOT(&msk->out_of_order_queue))
-		return false;
-
 	spin_lock_bh(&msk->fallback_lock);
 	if (!msk->allow_subflows) {
 		spin_unlock_bh(&msk->fallback_lock);
@@ -976,12 +967,11 @@ static void __mptcp_flush_join_list(struct sock *sk, struct list_head *join_list
 
 static bool mptcp_rtx_timer_pending(struct sock *sk)
 {
-	return timer_pending(&inet_csk(sk)->icsk_retransmit_timer);
+	return timer_pending(&sk->mptcp_retransmit_timer);
 }
 
 static void mptcp_reset_rtx_timer(struct sock *sk)
 {
-	struct inet_connection_sock *icsk = inet_csk(sk);
 	unsigned long tout;
 
 	/* prevent rescheduling on close */
@@ -989,7 +979,7 @@ static void mptcp_reset_rtx_timer(struct sock *sk)
 		return;
 
 	tout = mptcp_sk(sk)->timer_ival;
-	sk_reset_timer(sk, &icsk->icsk_retransmit_timer, jiffies + tout);
+	sk_reset_timer(sk, &sk->mptcp_retransmit_timer, jiffies + tout);
 }
 
 bool mptcp_schedule_work(struct sock *sk)
@@ -1636,7 +1626,9 @@ static struct sock *mptcp_subflow_get_send(struct mptcp_sock *msk)
 
 static void mptcp_push_release(struct sock *ssk, struct mptcp_sendmsg_info *info)
 {
-	tcp_push(ssk, 0, info->mss_now, tcp_sk(ssk)->nonagle, info->size_goal);
+	if (info->mss_now)
+		tcp_push(ssk, 0, info->mss_now, tcp_sk(ssk)->nonagle,
+			 info->size_goal);
 	release_sock(ssk);
 }
 
@@ -2316,7 +2308,7 @@ static int mptcp_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,
 		mptcp_cleanup_rbuf(msk, copied);
 		err = sk_wait_data(sk, &timeo, NULL);
 		if (err < 0) {
-			err = copied ? : err;
+			copied = copied ? : err;
 			goto out_err;
 		}
 	}
@@ -2345,9 +2337,7 @@ out_err:
 
 static void mptcp_retransmit_timer(struct timer_list *t)
 {
-	struct inet_connection_sock *icsk = from_timer(icsk, t,
-						       icsk_retransmit_timer);
-	struct sock *sk = &icsk->icsk_inet.sk;
+	struct sock *sk = from_timer(sk, t, mptcp_retransmit_timer);
 	struct mptcp_sock *msk = mptcp_sk(sk);
 
 	bh_lock_sock(sk);
@@ -2365,7 +2355,9 @@ static void mptcp_retransmit_timer(struct timer_list *t)
 
 static void mptcp_tout_timer(struct timer_list *t)
 {
-	struct sock *sk = from_timer(sk, t, sk_timer);
+	struct inet_connection_sock *icsk =
+		from_timer(icsk, t, mptcp_tout_timer);
+	struct sock *sk = &icsk->icsk_inet.sk;
 
 	mptcp_schedule_work(sk);
 	sock_put(sk);
@@ -2797,7 +2789,7 @@ void mptcp_reset_tout_timer(struct mptcp_sock *msk, unsigned long fail_tout)
 	 */
 	timeout = inet_csk(sk)->icsk_mtup.probe_timestamp ? close_timeout : fail_tout;
 
-	sk_reset_timer(sk, &sk->sk_timer, timeout);
+	sk_reset_timer(sk, &inet_csk(sk)->mptcp_tout_timer, timeout);
 }
 
 static void mptcp_mp_fail_no_response(struct mptcp_sock *msk)
@@ -2915,6 +2907,8 @@ static int __mptcp_init_sock(struct sock *sk)
 	msk->first_pending = NULL;
 	msk->rmem_fwd_alloc = 0;
 	WRITE_ONCE(msk->rmem_released, 0);
+	/* MPTCP sockets do not go through tcp_init_sock(). */
+	inet_csk(sk)->icsk_rto_min = TCP_RTO_MIN;
 	msk->timer_ival = TCP_RTO_MIN;
 
 	WRITE_ONCE(msk->first, NULL);
@@ -2927,9 +2921,8 @@ static int __mptcp_init_sock(struct sock *sk)
 	mptcp_pm_data_init(msk);
 	spin_lock_init(&msk->fallback_lock);
 
-	/* re-use the csk retrans timer for MPTCP-level retrans */
-	timer_setup(&msk->sk.icsk_retransmit_timer, mptcp_retransmit_timer, 0);
-	timer_setup(&sk->sk_timer, mptcp_tout_timer, 0);
+	timer_setup(&sk->mptcp_retransmit_timer, mptcp_retransmit_timer, 0);
+	timer_setup(&msk->sk.mptcp_tout_timer, mptcp_tout_timer, 0);
 
 	return 0;
 }
@@ -3106,7 +3099,7 @@ static void __mptcp_destroy_sock(struct sock *sk)
 	might_sleep();
 
 	mptcp_stop_rtx_timer(sk);
-	sk_stop_timer(sk, &sk->sk_timer);
+	sk_stop_timer(sk, &inet_csk(sk)->mptcp_tout_timer);
 	msk->pm.status = 0;
 
 	sk->sk_prot->destroy(sk);
@@ -3267,6 +3260,7 @@ static void mptcp_copy_inaddrs(struct sock *msk, const struct sock *ssk)
 
 static int mptcp_disconnect(struct sock *sk, int flags)
 {
+	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct mptcp_sock *msk = mptcp_sk(sk);
 
 	/* Deny disconnect if other threads are blocked in sk_wait_event()
@@ -3285,8 +3279,13 @@ static int mptcp_disconnect(struct sock *sk, int flags)
 	mptcp_check_listen_stop(sk);
 	inet_sk_state_store(sk, TCP_CLOSE);
 
-	mptcp_stop_rtx_timer(sk);
-	mptcp_stop_tout_timer(sk);
+	/* The later subflow close can not kick again the tout timer,
+	 * as the msk is already in closed status.
+	 */
+	msk->timer_ival = TCP_RTO_MIN;
+	sk_stop_timer_sync(sk, &sk->mptcp_retransmit_timer);
+	icsk->icsk_mtup.probe_timestamp = 0;
+	sk_stop_timer_sync(sk, &icsk->mptcp_tout_timer);
 
 	if (mptcp_sk(sk)->token)
 		mptcp_event(MPTCP_EVENT_CLOSED, mptcp_sk(sk), NULL, GFP_KERNEL);
@@ -3545,6 +3544,11 @@ void mptcp_destroy_common(struct mptcp_sock *msk)
 	sk_forward_alloc_add(sk, msk->rmem_fwd_alloc);
 	WRITE_ONCE(msk->rmem_fwd_alloc, 0);
 	mptcp_token_destroy(msk);
+
+	spin_lock_bh(&msk->pm.lock);
+	msk->pm.status |= BIT(MPTCP_PM_DESTROYING);
+	spin_unlock_bh(&msk->pm.lock);
+
 	mptcp_pm_free_anno_list(msk);
 	mptcp_free_local_addr_list(msk);
 }
@@ -3800,6 +3804,7 @@ bool mptcp_finish_join(struct sock *ssk)
 	mptcp_data_unlock(parent);
 
 	if (!ret) {
+		mptcp_pm_close_subflow(msk);
 err_prohibited:
 		subflow->reset_reason = MPTCP_RST_EPROHIBIT;
 		return false;

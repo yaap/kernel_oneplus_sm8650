@@ -175,6 +175,7 @@ static int qcom_add_minidump_segments(struct rproc *rproc, struct minidump_subsy
 	struct minidump_region __iomem *ptr;
 	struct minidump_region region;
 	int seg_cnt, i;
+	int ret = 0;
 	dma_addr_t da;
 	size_t size;
 	char *name;
@@ -193,7 +194,7 @@ static int qcom_add_minidump_segments(struct rproc *rproc, struct minidump_subsy
 	ptr = ioremap((unsigned long)le64_to_cpu(subsystem->regions_baseptr),
 		      seg_cnt * sizeof(struct minidump_region));
 
-	dev_err(&rproc->dev, "dump_segments list inf 0x%x\n", ptr);
+	dev_err(&rproc->dev, "dump_segments list inf %p\n", ptr);
 
 	if (!ptr)
 		return -EFAULT;
@@ -202,17 +203,17 @@ static int qcom_add_minidump_segments(struct rproc *rproc, struct minidump_subsy
 		memcpy_fromio(&region, ptr + i, sizeof(region));
 
 		dev_err(&rproc->dev, "dump_segments list seg_cnt(%d)_(%d)\n", seg_cnt, i);
-		dev_err(&rproc->dev, "                                  region.name=%s, region.address(0x%x), region.size(%d)\n", name, le64_to_cpu(region.address), le32_to_cpu(region.size));
-		dev_err(&rproc->dev, "                                  region.valid=0x%x(MD_REGION_VALID=0x%x)\n", region.valid, MD_REGION_VALID);
+		dev_err(&rproc->dev, "                                  region.name=%s, region.address(0x%llx), region.size(%llu)\n", region.name, le64_to_cpu(region.address), le64_to_cpu(region.size));
+		dev_err(&rproc->dev, "                                  region.valid=0x%x(MD_REGION_VALID=0x%x)\n", le32_to_cpu(region.valid), MD_REGION_VALID);
 
-		if (region.valid == MD_REGION_VALID) {
-			name = kstrdup(region.name, GFP_KERNEL);
+		if (le32_to_cpu(region.valid) == MD_REGION_VALID) {
+			name = kstrndup(region.name, MAX_REGION_NAME_LENGTH - 1, GFP_KERNEL);
 			if (!name) {
-				iounmap(ptr);
-				return -ENOMEM;
+				ret = -ENOMEM;
+				break;
 			}
 			da = le64_to_cpu(region.address);
-			size = le32_to_cpu(region.size);
+			size = le64_to_cpu(region.size);
 /*
 			if (le32_to_cpu(subsystem->encryption_status) != MD_SS_ENCR_DONE) {
 
@@ -227,12 +228,16 @@ static int qcom_add_minidump_segments(struct rproc *rproc, struct minidump_subsy
 			}
 			*/
 			dev_err(&rproc->dev, "qcom_add_minidump_segments: for %s, do rproc_coredump_add_custom_segment(%s), seg_cnt(%d)_(%d)\n", rproc->name, name, seg_cnt, i);
-			rproc_coredump_add_custom_segment(rproc, da, size, dumpfn, name);
+			ret = rproc_coredump_add_custom_segment(rproc, da, size, dumpfn, name);
+			if (ret) {
+				kfree(name);
+				break;
+			}
 		}
 	}
 
 	iounmap(ptr);
-	return 0;
+	return ret;
 }
 
 static void qcom_rproc_minidump(struct rproc *rproc, struct device *md_dev)
@@ -540,8 +545,10 @@ void qcom_add_glink_subdev(struct rproc *rproc, struct qcom_rproc_glink *glink,
 		return;
 
 	glink->ssr_name = kstrdup_const(ssr_name, GFP_KERNEL);
-	if (!glink->ssr_name)
+	if (!glink->ssr_name) {
+		of_node_put(glink->node);
 		return;
+	}
 
 	glink->dev = dev;
 	glink->subdev.start = glink_subdev_start;

@@ -220,6 +220,7 @@ extern const struct clk_ops clk_alpha_pll_zonda_evo_ops;
 extern const struct clk_ops clk_alpha_pll_fixed_zonda_evo_ops;
 extern const struct clk_ops clk_alpha_pll_postdiv_zonda_evo_ops;
 extern const struct clk_ops clk_alpha_pll_postdiv_lucid_evo_ops;
+#define clk_alpha_pll_postdiv_lucid_ole_ops clk_alpha_pll_postdiv_lucid_evo_ops
 
 #define clk_alpha_pll_lucid_ole_ops clk_alpha_pll_lucid_evo_ops
 #define clk_alpha_pll_fixed_lucid_ole_ops clk_alpha_pll_fixed_lucid_evo_ops

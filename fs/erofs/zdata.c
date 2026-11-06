@@ -851,6 +851,7 @@ static int z_erofs_pcluster_begin(struct z_erofs_decompress_frontend *fe)
 	struct super_block *sb = fe->inode->i_sb;
 	erofs_blk_t blknr = erofs_blknr(sb, map->m_pa);
 	struct erofs_workgroup *grp = NULL;
+	void *ptr = NULL;
 	int ret;
 
 	DBG_BUGON(fe->pcl);
@@ -863,6 +864,19 @@ static int z_erofs_pcluster_begin(struct z_erofs_decompress_frontend *fe)
 	} else if ((map->m_pa & ~PAGE_MASK) + map->m_plen > PAGE_SIZE) {
 		DBG_BUGON(1);
 		return -EFSCORRUPTED;
+	}
+
+	if (map->m_flags & EROFS_MAP_META) {
+		ptr = erofs_read_metabuf(&map->buf, fe->inode->i_sb,
+					 erofs_blknr(fe->inode->i_sb, map->m_pa),
+					 EROFS_NO_KMAP);
+		if (IS_ERR(ptr)) {
+			ret = PTR_ERR(ptr);
+			erofs_err(fe->inode->i_sb,
+				  "failed to get inline page, err %d", ret);
+			return ret;
+		}
+		ptr = map->buf.page;
 	}
 
 	if (grp) {

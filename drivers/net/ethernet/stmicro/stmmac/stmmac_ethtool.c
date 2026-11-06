@@ -541,6 +541,48 @@ stmmac_set_pauseparam(struct net_device *netdev,
 	}
 }
 
+static u64 stmmac_get_rx_normal_irq_n(struct stmmac_priv *priv, int q)
+{
+	u64 total;
+	int cpu;
+
+	total = 0;
+	for_each_possible_cpu(cpu) {
+		struct stmmac_pcpu_stats *pcpu;
+		unsigned int start;
+		u64 irq_n;
+
+		pcpu = per_cpu_ptr(priv->xstats.pcpu_stats, cpu);
+		do {
+			start = u64_stats_fetch_begin(&pcpu->syncp);
+			irq_n = u64_stats_read(&pcpu->rx_normal_irq_n[q]);
+		} while (u64_stats_fetch_retry(&pcpu->syncp, start));
+		total += irq_n;
+	}
+	return total;
+}
+
+static u64 stmmac_get_tx_normal_irq_n(struct stmmac_priv *priv, int q)
+{
+	u64 total;
+	int cpu;
+
+	total = 0;
+	for_each_possible_cpu(cpu) {
+		struct stmmac_pcpu_stats *pcpu;
+		unsigned int start;
+		u64 irq_n;
+
+		pcpu = per_cpu_ptr(priv->xstats.pcpu_stats, cpu);
+		do {
+			start = u64_stats_fetch_begin(&pcpu->syncp);
+			irq_n = u64_stats_read(&pcpu->tx_normal_irq_n[q]);
+		} while (u64_stats_fetch_retry(&pcpu->syncp, start));
+		total += irq_n;
+	}
+	return total;
+}
+
 static void stmmac_get_per_qstats(struct stmmac_priv *priv, u64 *data)
 {
 	u32 tx_cnt = priv->plat->tx_queues_to_use;

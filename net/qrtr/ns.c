@@ -21,6 +21,7 @@
 #include <trace/events/qrtr.h>
 
 #define NS_LOG_PAGE_CNT 4
+#define QRTR_NS_MAX_SERVERS 256
 static void *ns_ilc;
 #define NS_INFO(x, ...) ipc_log_string(ns_ilc, x, ##__VA_ARGS__)
 
@@ -77,6 +78,7 @@ struct qrtr_server {
 struct qrtr_node {
 	unsigned int id;
 	struct xarray servers;
+	u32 server_count;
 };
 
 static struct qrtr_node *node_get(unsigned int node_id)
@@ -264,6 +266,17 @@ static struct qrtr_server *server_add(unsigned int service,
 	if (!service || !port)
 		return NULL;
 
+	node = node_get(node_id);
+	if (!node)
+		return NULL;
+
+	/* Make sure the new servers per port are capped at the maximum value */
+	old = xa_load(&node->servers, port);
+	if (!old && node->server_count >= QRTR_NS_MAX_SERVERS) {
+		pr_err_ratelimited("QRTR client node %u exceeds max server limit!\n", node_id);
+		return NULL;
+	}
+
 	srv = kzalloc(sizeof(*srv), GFP_KERNEL);
 	if (!srv)
 		return NULL;
@@ -272,10 +285,6 @@ static struct qrtr_server *server_add(unsigned int service,
 	srv->instance = instance;
 	srv->node = node_id;
 	srv->port = port;
-
-	node = node_get(node_id);
-	if (!node)
-		goto err;
 
 	/* Delete the old server on the same port */
 	old = xa_store(&node->servers, port, srv, GFP_KERNEL);
@@ -287,6 +296,8 @@ static struct qrtr_server *server_add(unsigned int service,
 		} else {
 			kfree(old);
 		}
+	} else {
+		node->server_count++;
 	}
 
 	trace_qrtr_ns_server_add(srv->service, srv->instance,
@@ -330,6 +341,7 @@ static int server_del(struct qrtr_node *node, unsigned int port, bool bcast)
 	}
 
 	kfree(srv);
+	node->server_count--;
 
 	return 0;
 }
@@ -731,7 +743,7 @@ static void qrtr_ns_worker(struct kthread_work *work)
 		}
 
 		if (ret < 0)
-			pr_err("failed while handling packet from %d:%d",
+			pr_err_ratelimited("failed while handling packet from %d:%d",
 			       sq.sq_node, sq.sq_port);
 	}
 

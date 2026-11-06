@@ -60,14 +60,43 @@
 #undef FRAME_FILTER_DEBUG
 /* #define FRAME_FILTER_DEBUG */
 
+struct stmmac_q_tx_stats {
+	u64_stats_t tx_bytes;
+	u64_stats_t tx_set_ic_bit;
+	u64_stats_t tx_tso_frames;
+	u64_stats_t tx_tso_nfrags;
+};
+
+struct stmmac_napi_tx_stats {
+	u64_stats_t tx_packets;
+	u64_stats_t tx_pkt_n;
+	u64_stats_t poll;
+	u64_stats_t tx_clean;
+	u64_stats_t tx_set_ic_bit;
+};
+
 struct stmmac_txq_stats {
 	unsigned long tx_pkt_n;
 	unsigned long tx_normal_irq_n;
 };
 
+struct stmmac_napi_rx_stats {
+	u64_stats_t rx_bytes;
+	u64_stats_t rx_packets;
+	u64_stats_t rx_pkt_n;
+	u64_stats_t poll;
+};
+
 struct stmmac_rxq_stats {
 	unsigned long rx_pkt_n;
 	unsigned long rx_normal_irq_n;
+};
+
+/* Updates on each CPU protected by not allowing nested irqs. */
+struct stmmac_pcpu_stats {
+	struct u64_stats_sync syncp;
+	u64_stats_t rx_normal_irq_n[MTL_MAX_TX_QUEUES];
+	u64_stats_t tx_normal_irq_n[MTL_MAX_RX_QUEUES];
 };
 
 /* Extra statistic and debug information exposed by ethtool */
