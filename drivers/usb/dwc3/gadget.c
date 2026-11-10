@@ -3314,6 +3314,7 @@ static void dwc3_gadget_free_endpoints(struct dwc3 *dwc)
 
 		dwc3_debugfs_remove_endpoint_dir(dep);
 		kfree(dep);
+		dwc->eps[epnum] = NULL;
 	}
 }
 
@@ -4787,11 +4788,15 @@ void dwc3_gadget_exit(struct dwc3 *dwc)
 	usb_del_gadget(dwc->gadget);
 	dwc3_gadget_free_endpoints(dwc);
 	usb_put_gadget(dwc->gadget);
+	dwc->gadget = NULL;
 	dma_free_coherent(dwc->sysdev, DWC3_BOUNCE_SIZE, dwc->bounce,
 			  dwc->bounce_addr);
+	dwc->bounce = NULL;
 	kfree(dwc->setup_buf);
+	dwc->setup_buf = NULL;
 	dma_free_coherent(dwc->sysdev, sizeof(*dwc->ep0_trb) * 2,
 			  dwc->ep0_trb, dwc->ep0_trb_addr);
+	dwc->ep0_trb = NULL;
 }
 
 int dwc3_gadget_suspend(struct dwc3 *dwc)

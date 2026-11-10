@@ -1830,15 +1830,6 @@ static int qcom_glink_announce_create(struct rpmsg_device *rpdev)
 static void qcom_glink_remove_rpmsg_device(struct qcom_glink *glink, struct glink_channel *channel)
 {
 	struct rpmsg_channel_info chinfo;
-	unsigned long flags;
-
-	spin_lock_irqsave(&channel->recv_lock, flags);
-	if (!channel->ept.cb) {
-		spin_unlock_irqrestore(&channel->recv_lock, flags);
-		return;
-	}
-	channel->ept.cb = NULL;
-	spin_unlock_irqrestore(&channel->recv_lock, flags);
 
 	if (channel->rpdev) {
 		strscpy_pad(chinfo.name, channel->name, sizeof(chinfo.name));
@@ -1856,6 +1847,10 @@ static void qcom_glink_destroy_ept(struct rpmsg_endpoint *ept)
 	unsigned long flags;
 
 	spin_lock_irqsave(&channel->recv_lock, flags);
+	if (!channel->ept.cb) {
+		spin_unlock_irqrestore(&channel->recv_lock, flags);
+		return;
+	}
 	channel->ept.cb = NULL;
 	spin_unlock_irqrestore(&channel->recv_lock, flags);
 
@@ -2308,6 +2303,9 @@ static void qcom_glink_rx_close_ack(struct qcom_glink *glink, unsigned int lcid)
 	/* Reinit any variables that are important to endpoint creation */
 	reinit_completion(&channel->open_ack);
 	channel->channel_ready = false;
+
+	/* Decouple the potential rpdev from the channel */
+	qcom_glink_remove_rpmsg_device(glink, channel);
 
 	kref_put(&channel->refcount, qcom_glink_channel_release);
 }
