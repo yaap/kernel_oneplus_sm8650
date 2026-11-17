@@ -215,9 +215,9 @@
 .text
 .p2align 4
 
-ENTRY(_lz4_decompress_asm)
+SYM_FUNC_START(_lz4_decompress_asm)
 	lz4_decompress_asm_generic
-ENDPROC(_lz4_decompress_asm)
+SYM_FUNC_END(_lz4_decompress_asm)
 
 Failed:
 	mov	tmp, #-1
@@ -278,6 +278,6 @@ Copylength_table:
 
 .text
 .p2align 4
-ENTRY(_lz4_decompress_asm_noprfm)
+SYM_FUNC_START(_lz4_decompress_asm_noprfm)
 	lz4_decompress_asm_generic	0
-ENDPROC(_lz4_decompress_asm_noprfm)
+SYM_FUNC_END(_lz4_decompress_asm_noprfm)
